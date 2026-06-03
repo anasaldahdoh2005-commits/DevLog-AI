@@ -1,0 +1,58 @@
+{
+  "status": "success",
+  "results": [
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2eqcyaag4q/hero-banner-achievement-tracker.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2eqcyaag4q/hero-banner-achievement-tracker.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2eqcyaag4q/hero-banner-achievement-tracker.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Modern hero banner for a CS student achievement tracking app, showing a laptop with code on screen, surrounded by floating achievement badges and LinkedIn icons, turquoise and white beach color palette, clean and professional",
+      "style": "minimalist",
+      "filename": "hero-banner-achievement-tracker.jpg"
+    },
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2eltqaag4a/feature-ai-generation.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2eltqaag4a/feature-ai-generation.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2eltqaag4a/feature-ai-generation.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Illustration of a student writing achievements on a digital notepad with AI sparkles transforming text into a LinkedIn post, turquoise accent colors, modern flat design",
+      "style": "minimalist",
+      "filename": "feature-ai-generation.jpg"
+    },
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2elmaaag3q/feature-daily-logging.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2elmaaag3q/feature-daily-logging.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2elmaaag3q/feature-daily-logging.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Clean illustration showing a timeline of daily achievements being logged, calendar icons and checkmarks, turquoise and sandy white colors, professional SaaS style",
+      "style": "minimalist",
+      "filename": "feature-daily-logging.jpg"
+    },
+    {
+      "status": "failed",
+      "path": "",
+      "absolute_path": "",
+      "url": "",
+      "message": "Image generation failed: Image creation failed: HTTP 400 error: {\"error\":{\"message\":\"Transparent background is not supported for this model. (request id: 2026052810223624981508231539655)\",\"type\":\"image_generation_user_error\",\"param\":\"background\",\"code\":\"invalid_value\"}}",
+      "description": "Modern app logo for DevLog AI - a stylized document icon with AI sparkle and code brackets, turquoise gradient on transparent background, clean vector style",
+      "style": "minimalist",
+      "filename": "logo-devlog-ai.png"
+    },
+    {
+      "status": "success",
+      "path": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2e6dyaag3q/logo-devlog-ai.png",
+      "absolute_path": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2e6dyaag3q/logo-devlog-ai.png",
+      "url": "https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2e6dyaag3q/logo-devlog-ai.png",
+      "message": "Image generated successfully.\n\nNote: The image is on CDN and will be displayed automatically. Just describe what you created briefly, no need to mention filenames or URLs.",
+      "description": "Modern app logo for DevLog AI - a stylized document icon with AI sparkle and code brackets, turquoise gradient on white background, clean vector style, centered composition",
+      "style": "minimalist",
+      "filename": "logo-devlog-ai.png"
+    }
+  ],
+  "success_count": 1,
+  "failed_count": 0,
+  "message": "Generated 1/1 images"
+}
