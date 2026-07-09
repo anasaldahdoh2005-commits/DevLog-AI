@@ -31,6 +31,7 @@ const REMINDER_STORAGE_KEY = 'devlog-daily-reminder';
 const REMINDER_LAST_SHOWN_KEY = 'devlog-daily-reminder-last-shown';
 const DEFAULT_REMINDER_SETTINGS = { enabled: true, preset: '20:00', time: '20:00' };
 let reminderTimerId = null;
+let reminderWakeListenersReady = false;
 const PLANS = {
     free: {
         name: 'أساسية',
@@ -1071,6 +1072,14 @@ function initDailyReminderUI() {
     presetInputs.forEach(input => input.addEventListener('change', saveFromUI));
     customInput.addEventListener('change', saveFromUI);
 
+    if (!reminderWakeListenersReady) {
+        window.addEventListener('focus', scheduleDailyReminder);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) scheduleDailyReminder();
+        });
+        reminderWakeListenersReady = true;
+    }
+
     renderReminderSettings(getReminderSettings());
     scheduleDailyReminder();
 }
@@ -1130,9 +1139,13 @@ function renderReminderSettings(settings = getReminderSettings()) {
     const isCustom = normalized.preset === 'custom';
     if (customRow) customRow.hidden = !isCustom;
     if (status) {
-        status.textContent = normalized.enabled
+        const baseStatus = normalized.enabled
             ? `سيصلك التذكير اليومي الساعة ${formatReminderTime(normalized.time)}.`
             : 'التذكير اليومي متوقف.';
+        const mobileNote = isMobileDevice() && normalized.enabled
+            ? ' على الجوال تعمل التذكيرات المحلية عندما يكون التطبيق مفتوحًا أو مسموحًا له بالبقاء بالخلفية؛ الإشعارات المضمونة تحتاج Push Server.'
+            : '';
+        status.textContent = baseStatus + mobileNote;
     }
 }
 
@@ -1163,6 +1176,16 @@ function scheduleDailyReminder() {
 
     if (!settings.enabled) return;
 
+    const todayReminder = getTodayReminderDate(settings.time);
+    const todayKey = new Date().toISOString().slice(0, 10);
+    if (todayReminder.getTime() <= Date.now() && localStorage.getItem(REMINDER_LAST_SHOWN_KEY) !== todayKey) {
+        reminderTimerId = setTimeout(async () => {
+            await showDailyReminderNotification(settings.time);
+            scheduleDailyReminder();
+        }, 1000);
+        return;
+    }
+
     const nextReminder = getNextReminderDate(settings.time);
     const delay = Math.max(1000, nextReminder.getTime() - Date.now());
 
@@ -1172,10 +1195,15 @@ function scheduleDailyReminder() {
     }, delay);
 }
 
-function getNextReminderDate(time) {
+function getTodayReminderDate(time) {
     const [hours, minutes] = normalizeReminderTime(time).split(':').map(Number);
-    const next = new Date();
-    next.setHours(hours, minutes, 0, 0);
+    const reminder = new Date();
+    reminder.setHours(hours, minutes, 0, 0);
+    return reminder;
+}
+
+function getNextReminderDate(time) {
+    const next = getTodayReminderDate(time);
 
     if (next.getTime() <= Date.now()) {
         next.setDate(next.getDate() + 1);
@@ -1333,8 +1361,51 @@ async function copyText(text) {
     }
 }
 
+function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 1 && window.innerWidth <= 900);
+}
+
 function openPublishWindow(url) {
     return window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function getPlatformPublishUrl(platform, text) {
+    const encoded = encodeURIComponent(text);
+    if (platform === 'linkedin') {
+        return `https://www.linkedin.com/feed/?shareActive=true&text=${encoded}`;
+    }
+    return `https://twitter.com/intent/tweet?text=${encoded}`;
+}
+
+async function sharePostToPlatform(platform, postContent) {
+    const text = String(postContent || '').trim();
+    const platformName = platform === 'linkedin' ? 'LinkedIn' : 'X';
+
+    if (!text) {
+        showToast('لا يوجد نص جاهز للنشر', 'error');
+        return;
+    }
+
+    const copied = await copyText(text);
+
+    if (isMobileDevice() && navigator.share) {
+        try {
+            await navigator.share({ text });
+            showToast(`تم فتح مشاركة الجوال. اختر ${platformName}، وإذا لم يظهر النص الصقه من الحافظة.`);
+            return;
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                if (copied) showToast('تم نسخ المنشور للحافظة.');
+                return;
+            }
+        }
+    }
+
+    openPublishWindow(getPlatformPublishUrl(platform, text));
+    showToast(copied
+        ? `تم نسخ المنشور. إذا لم يظهر النص تلقائيًا، الصقه داخل ${platformName}.`
+        : `إذا لم يظهر النص تلقائيًا، انسخه والصقه داخل ${platformName}.`);
 }
 
 
@@ -1343,7 +1414,7 @@ function openPublishWindow(url) {
 
 
 
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
 
     // فتح وإغلاق قائمة النشر
     if (e.target.closest('.publish-btn')) {
@@ -1368,35 +1439,15 @@ document.addEventListener('click', (e) => {
 
     // LinkedIn Share
     if (e.target.closest('.share-linkedin')) {
-
-        const card =
-            e.target.closest('.log-card');
-
-        const postContent =
-    card.dataset.post;
-
-        copyText(postContent).finally(() => {
-            const linkedinUrl =
-                `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(postContent)}`;
-            window.open(linkedinUrl, '_blank', 'noopener,noreferrer');
-            showToast('تم نسخ المنشور. إذا لم يظهر النص تلقائيًا، الصقه داخل LinkedIn.');
-        });
+        const card = e.target.closest('.log-card');
+        await sharePostToPlatform('linkedin', card?.dataset.post);
         return;
     }
 
     // X / Twitter Share
     if (e.target.closest('.share-x')) {
-
-        const card =
-            e.target.closest('.log-card');
-
-       const postContent =
-    card.dataset.post;
-
-        const twitterUrl =
-            `https://x.com/intent/post?text=${encodeURIComponent(postContent)}`;
-
-        openPublishWindow(twitterUrl);
+        const card = e.target.closest('.log-card');
+        await sharePostToPlatform('x', card?.dataset.post);
         return;
     }
 
