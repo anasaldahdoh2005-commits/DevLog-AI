@@ -1387,25 +1387,13 @@ async function sharePostToPlatform(platform, postContent) {
         return;
     }
 
-    const copied = await copyText(text);
+    const publishUrl = getPlatformPublishUrl(platform, text);
+    const opened = openPublishWindow(publishUrl);
 
-    if (isMobileDevice() && navigator.share) {
-        try {
-            await navigator.share({ text });
-            showToast(`تم فتح مشاركة الجوال. اختر ${platformName}، وإذا لم يظهر النص الصقه من الحافظة.`);
-            return;
-        } catch (error) {
-            if (error?.name === 'AbortError') {
-                if (copied) showToast('تم نسخ المنشور للحافظة.');
-                return;
-            }
-        }
-    }
-
-    openPublishWindow(getPlatformPublishUrl(platform, text));
-    showToast(copied
-        ? `تم نسخ المنشور. إذا لم يظهر النص تلقائيًا، الصقه داخل ${platformName}.`
-        : `إذا لم يظهر النص تلقائيًا، انسخه والصقه داخل ${platformName}.`);
+    showToast(opened
+        ? `تم فتح ${platformName}. إذا لم يظهر النص داخل تطبيق الجوال، افتحه من المتصفح لأن بعض تطبيقات الجوال تمنع تعبئة النص تلقائيًا.`
+        : `لم يتم فتح ${platformName}. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.`,
+        opened ? 'success' : 'error');
 }
 
 
