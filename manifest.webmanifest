@@ -1,0 +1,42 @@
+{
+  "name": "DevLog AI",
+  "short_name": "DevLog",
+  "description": "تطبيق لتوثيق الانجازات اليومية وتحويلها الى منشورات احترافية.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fbfaf7",
+  "theme_color": "#1bb3bf",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "imges/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "imges/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "تسجيل انجاز",
+      "short_name": "انجاز",
+      "url": "./#/dashboard",
+      "icons": [
+        {
+          "src": "imges/logo-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

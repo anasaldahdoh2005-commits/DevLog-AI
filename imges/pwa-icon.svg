@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DevLog AI">
+  <rect width="512" height="512" rx="112" fill="#fbfaf7"/>
+  <path d="M150 318c-34 0-62-28-62-62s28-62 62-62h44v52h-44c-5 0-10 5-10 10s5 10 10 10h48c32 0 58 26 58 58s-26 58-58 58h-80v-52h80c4 0 7-3 7-6s-3-6-7-6h-48Z" fill="#1bb3bf"/>
+  <path d="M362 194c34 0 62 28 62 62s-28 62-62 62h-44v-52h44c5 0 10-5 10-10s-5-10-10-10h-48c-32 0-58-26-58-58s26-58 58-58h80v52h-80c-4 0-7 3-7 6s3 6 7 6h48Z" fill="#f59e0b"/>
+  <path d="M192 300 320 172" fill="none" stroke="#233142" stroke-width="44" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="28" fill="#233142"/>
+</svg>

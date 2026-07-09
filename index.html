@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1bb3bf">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="DevLog AI">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="imges/logo-192.png">
+    <link rel="icon" href="imges/logo-192.png" type="image/png">
+    <title>DevLog AI - وثّق إنجازاتك</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#/" class="nav-logo">
+                <img src="imges/logo-512.png"
+                    alt="DevLog AI" class="logo-img">
+                <span class="logo-text">DevLog AI</span>
+            </a>
+            <div class="nav-links" id="nav-links">
+                <a href="#/" class="nav-link" data-page="landing">الرئيسية</a>
+                <a href="#/pricing" class="nav-link" data-page="pricing">الاشتراكات</a>
+                <a href="#/dashboard" class="nav-link auth-only" data-page="dashboard">لوحة التحكم</a>
+                <a href="#/history" class="nav-link auth-only" data-page="history">السجل</a>
+                <a href="#/settings" class="nav-link auth-only" data-page="settings">الإعدادات</a>
+            </div>
+            <div class="nav-actions">
+                <button class="btn btn-ghost theme-toggle" id="theme-toggle" aria-label="تبديل الثيم">
+                    <svg class="icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5" />
+                        <path
+                            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                    </svg>
+                    <svg class="icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                </button>
+                <a href="#/auth" class="btn btn-primary no-auth-only" id="nav-login-btn">تسجيل الدخول</a>
+                <button class="btn btn-ghost auth-only" id="nav-user-btn">
+                    <img id="nav-avatar-img" class="nav-avatar-img" alt="" hidden>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                </button>
+            </div>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="القائمة">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12h18M3 6h18M3 18h18" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Landing Page -->
+    <main class="page" id="page-landing">
+        <section class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">وثّق إنجازاتك<br><span class="gradient-text">وانشرها باحترافية</span></h1>
+                <p class="hero-subtitle">تطبيق ذكي يساعد الجميع على توثيق إنجازاتهم اليومية وتحويلها إلى منشورات
+                    LinkedIn احترافية باستخدام الذكاء الاصطناعي</p>
+                <div class="hero-actions">
+                    <a href="#/auth" class="btn btn-primary btn-lg">ابدأ الآن مجاناً</a>
+                    <a href="#features" class="btn btn-outline btn-lg">اكتشف المميزات</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2eqcyaag4q/hero-banner-achievement-tracker.png"
+                    alt="DevLog AI Hero" loading="lazy">
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <div class="section-header">
+                <h2 class="section-title">لماذا DevLog AI؟</h2>
+                <p class="section-subtitle">أدوات ذكية تساعدك على بناء حضورك المهني</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                    </div>
+                    <h3>تسجيل سريع</h3>
+                    <p>سجّل إنجازاتك اليومية بسرعة وسهولة في ثوانٍ معدودة</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                    </div>
+                    <h3>توليد ذكي</h3>
+                    <p>حوّل إنجازاتك إلى منشورات LinkedIn احترافية بضغطة زر</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <path d="M3 9h18" />
+                            <path d="M9 21V9" />
+                        </svg>
+                    </div>
+                    <h3>أنماط متعددة</h3>
+                    <p>اختر من بين 6 أنماط كتابة مختلفة تناسب شخصيتك</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                    </div>
+                    <h3>سجل كامل</h3>
+                    <p>احتفظ بسجل كامل لجميع إنجازاتك ومنشوراتك المولّدة</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="how-it-works">
+            <div class="section-header">
+                <h2 class="section-title">كيف يعمل؟</h2>
+                <p class="section-subtitle">ثلاث خطوات بسيطة لبناء حضورك المهني</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <img src="https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2elmaaag3q/feature-daily-logging.png"
+                        alt="تسجيل الإنجاز" class="step-image" loading="lazy">
+                    <h3>سجّل إنجازك</h3>
+                    <p>اكتب ما أنجزته اليوم بكلماتك البسيطة</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <img src="https://mgx-backend-cdn.metadl.com/generate/images/734025/2026-05-28/pn2eltqaag4a/feature-ai-generation.png"
+                        alt="توليد المنشور" class="step-image" loading="lazy">
+                    <h3>اختر النمط</h3>
+                    <p>حدد أسلوب الكتابة المناسب لمنشورك</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <div class="step-icon-placeholder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13" />
+                            <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                        </svg>
+                    </div>
+                    <h3>انشر بثقة</h3>
+                    <p>انسخ المنشور المولّد وانشره على LinkedIn</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <div class="cta-content">
+                <h2>جاهز لتوثيق رحلتك؟</h2>
+                <p>انضم الآن وابدأ ببناء سجل إنجازاتك المهنية</p>
+                <a href="#/auth" class="btn btn-primary btn-lg">ابدأ مجاناً</a>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>© 2026 DevLog AI - صُنع لمساعدتك على توثيق إنجازاتك باحترافية</p>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Auth Page -->
+    <main class="page" id="page-auth" style="display:none;">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <img src="imges/logo-512.png"
+                        alt="DevLog AI" class="auth-logo">
+                    <h1 id="auth-title">تسجيل الدخول</h1>
+                    <p id="auth-subtitle">مرحباً بعودتك سجّل دخولك للمتابعة</p>
+                </div>
+
+                <div id="auth-error" class="alert alert-error" style="display:none;"></div>
+                <div id="auth-success" class="alert alert-success" style="display:none;"></div>
+
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="login-email">البريد الإلكتروني</label>
+                        <input type="email" id="login-email" placeholder="example@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">كلمة المرور</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+                        <span class="btn-text">تسجيل الدخول</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+                    <div class="auth-links">
+                        <a href="#" id="show-reset">نسيت كلمة المرور؟</a>
+                        <a href="#" id="show-signup">إنشاء حساب جديد</a>
+                    </div>
+                </form>
+
+                <!-- Signup Form -->
+                <form id="signup-form" class="auth-form" style="display:none;">
+                    <div class="form-group">
+                        <label for="signup-email">البريد الإلكتروني</label>
+                        <input type="email" id="signup-email" placeholder="example@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">كلمة المرور</label>
+                        <input type="password" id="signup-password" placeholder="••••••••" minlength="8" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-confirm">تأكيد كلمة المرور</label>
+                        <input type="password" id="signup-confirm" placeholder="••••••••" minlength="8" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" id="signup-btn">
+                        <span class="btn-text">إنشاء حساب</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+                    <div class="auth-links">
+                        <a href="#" id="show-login">لديك حساب؟ سجّل دخولك</a>
+                    </div>
+                </form>
+
+                <!-- Reset Form -->
+                <form id="reset-form" class="auth-form" style="display:none;">
+                    <div class="form-group">
+                        <label for="reset-email">البريد الإلكتروني</label>
+                        <input type="email" id="reset-email" placeholder="example@email.com" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" id="reset-btn">
+                        <span class="btn-text">إرسال رابط الاستعادة</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+                    <div class="auth-links">
+                        <a href="#" id="show-login-from-reset">العودة لتسجيل الدخول</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Reset Password Page -->
+    <main class="page" id="page-reset-password" style="display:none;">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <img src="imges/logo-512.png"
+                        alt="DevLog AI" class="auth-logo">
+                    <h1>تعيين كلمة مرور جديدة</h1>
+                    <p>اختر كلمة مرور جديدة لحسابك</p>
+                </div>
+
+                <form id="update-password-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="new-password">كلمة المرور الجديدة</label>
+                        <input type="password" id="new-password" placeholder="••••••••" minlength="8" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password-confirm">تأكيد كلمة المرور</label>
+                        <input type="password" id="new-password-confirm" placeholder="••••••••" minlength="8" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" id="update-password-btn">
+                        <span class="btn-text">تحديث كلمة المرور</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Pricing Page -->
+    <main class="page" id="page-pricing" style="display:none;">
+        <div class="pricing-container">
+            <div class="pricing-header">
+                <h1>الاشتراكات</h1>
+                <p>اختر الخطة المناسبة لاستخدامك الحالي</p>
+            </div>
+
+            <div class="plans-grid">
+                <article class="plan-card" data-plan-card="free">
+                    <div class="plan-header">
+                        <span class="plan-kicker">Basic</span>
+                        <h2>أساسية</h2>
+                        <p>لبداية خفيفة وتجربة المنتج</p>
+                    </div>
+                    <div class="plan-price">
+                        <span>$3</span>
+                        <small>شهرياً عند الإطلاق</small>
+                    </div>
+                    <ul class="plan-features">
+                        <li>توليد منشورات AI عند تفعيل الاشتراك</li>
+                        <li>حفظ الإنجازات والسجل</li>
+                        <li>النشر اليدوي على LinkedIn و X</li>
+                    </ul>
+                    <button type="button" class="btn btn-outline btn-full plan-select-btn" data-plan-select="free" disabled aria-disabled="true">
+                        <span class="btn-text">قريباً</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+                </article>
+
+                <article class="plan-card plan-card-featured" data-plan-card="pro">
+                    <div class="plan-badge">الأكثر مناسبة</div>
+                    <div class="plan-header">
+                        <span class="plan-kicker">Pro</span>
+                        <h2>احترافية</h2>
+                        <p>للمستخدم الذي ينشر بشكل مستمر</p>
+                    </div>
+                    <div class="plan-price">
+                        <span>$7</span>
+                        <small>شهرياً عند الإطلاق</small>
+                    </div>
+                    <ul class="plan-features">
+                        <li>كل أنماط الكتابة والمنصات</li>
+                        <li>مناسب للنشر المستمر</li>
+                        <li>كل أنماط الكتابة والمنصات</li>
+                        <li>أولوية في التوليد والحفظ</li>
+                    </ul>
+                    <button type="button" class="btn btn-primary btn-full plan-select-btn" data-plan-select="pro" disabled aria-disabled="true">
+                        <span class="btn-text">قريباً</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+                </article>
+
+                <article class="plan-card" data-plan-card="team">
+                    <div class="plan-header">
+                        <span class="plan-kicker">Team</span>
+                        <h2>فريق</h2>
+                        <p>للأفراد والفرق الصغيرة</p>
+                    </div>
+                    <div class="plan-price">
+                        <span>$10</span>
+                        <small>شهرياً عند الإطلاق</small>
+                    </div>
+                    <ul class="plan-features">
+                        <li>إدارة أكثر من مستخدم</li>
+                        <li>مناسب للفرق الصغيرة</li>
+                        <li>إدارة أكثر من مستخدم</li>
+                        <li>تصدير السجل والتقارير</li>
+                    </ul>
+                    <button type="button" class="btn btn-outline btn-full plan-select-btn" data-plan-select="team" disabled aria-disabled="true">
+                        <span class="btn-text">قريباً</span>
+                        <span class="btn-loader" style="display:none;"></span>
+                    </button>
+                </article>
+            </div>
+
+            <p class="pricing-note">
+                الأسعار تقديرية ومعلّقة حالياً، وسيتم فتح الاشتراكات عند اكتمال بوابة الدفع وتجربة الاشتراك.
+            </p>
+        </div>
+    </main>
+
+    <!-- Dashboard Page -->
+    <main class="page" id="page-dashboard" style="display:none;">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <div>
+                    <h1 class="dashboard-title">مرحباً <span id="dashboard-profile-name"></span> 👋</h1>
+                    <!-- 2026-07-01 -->
+                    <p class="dashboard-subtitle">ما الذي أنجزته اليوم؟</p>
+                </div>
+                <button class="btn btn-primary" id="add-log-btn">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    إنجاز جديد
+                </button>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-total">0</span>
+                        <span class="stat-label">إجمالي الإنجازات</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-posts">0</span>
+                        <span class="stat-label">منشورات مولّدة</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-last">—</span>
+                        <span class="stat-label">آخر نشاط</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Logs -->
+            <div class="section-block">
+                <div class="section-block-header">
+                    <h2>آخر الإنجازات</h2>
+                    <a href="#/history" class="btn btn-ghost btn-sm">عرض الكل</a>
+                </div>
+                <div id="recent-logs" class="logs-list">
+                    <div class="empty-state" id="dashboard-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="12" y1="12" x2="12" y2="18" />
+                            <line x1="9" y1="15" x2="15" y2="15" />
+                        </svg>
+                        <h3>لا توجد إنجازات بعد</h3>
+                        <p>ابدأ بتسجيل أول إنجاز لك اليوم!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- History Page -->
+    <main class="page" id="page-history" style="display:none;">
+        <div class="history-container">
+            <div class="history-header">
+                <h1>سجل الإنجازات</h1>
+                <div class="history-filters">
+                    <div class="search-box">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="search" id="search-input" name="search-history-random"
+                            placeholder="بحث في الإنجازات..." autocomplete="new-password" autocorrect="off"
+                            autocapitalize="off" spellcheck="false" />
+                    </div>
+                    <select id="filter-style" class="select-input">
+                        <option value="">كل الأنماط</option>
+                        <option value="Professional">احترافي</option>
+                        <option value="Friendly">ودّي</option>
+                        <option value="Motivational">تحفيزي</option>
+                        <option value="Technical">تقني</option>
+                        <option value="Short">مختصر</option>
+                        <option value="Storytelling">قصصي</option>
+                    </select>
+                    <select id="sort-order" class="select-input">
+                        <option value="newest">الأحدث أولاً</option>
+                        <option value="oldest">الأقدم أولاً</option>
+                    </select>
+                </div>
+            </div>
+            <div id="history-logs" class="logs-grid">
+                <div class="empty-state" id="history-empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    <h3>لا توجد سجلات</h3>
+                    <p>ابدأ بإضافة إنجازاتك من لوحة التحكم</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Page -->
+    <main class="page" id="page-settings" style="display:none;">
+        <div class="settings-container">
+            <h1>الإعدادات</h1>
+            <div class="settings-grid">
+                <div class="settings-card">
+                    <h2>الملف الشخصي</h2>
+                    <div class="profile-info">
+                        <div class="avatar" id="settings-avatar-preview">
+                            <img id="settings-avatar-img" class="avatar-img" alt="الصورة الشخصية" hidden>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                                                    <label for="profile-avatar" class="avatar-edit-btn" title="تغيير الصورة" aria-label="تغيير الصورة">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 20h9" />
+                                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                                </svg>
+                            </label>
+                        </div>
+                        <div class="profile-details">
+                            <p class="profile-email" id="settings-email">—</p>
+                            <p class="profile-joined" id="settings-joined">—</p>
+                        </div>
+                    </div>
+                    <input class="avatar-file-input" type="file" id="profile-avatar" accept="image/png,image/jpeg,image/webp,image/gif">
+                    <form id="profile-form" class="profile-form"> <!-- 2026-07-01 -->
+                        <div class="form-group"> <!-- 2026-07-01 -->
+                            <label for="profile-full-name">الاسم الكامل</label> <!-- 2026-07-01 -->
+                            <input type="text" id="profile-full-name" placeholder="اكتب اسمك الكامل" autocomplete="name"
+                                maxlength="120"> <!-- 2026-07-01 -->
+                        </div> <!-- 2026-07-01 -->
+                        <div class="form-group"> <!-- 2026-07-01 -->
+                            <label for="profile-username">اسم المستخدم</label> <!-- 2026-07-01 -->
+                            <input type="text" id="profile-username" placeholder="username" autocomplete="username"
+                                maxlength="80"> <!-- 2026-07-01 -->
+                        </div> <!-- 2026-07-01 -->
+                        <button type="submit" class="btn btn-outline btn-sm" id="profile-save-btn"> <!-- 2026-07-01 -->
+                            <span class="btn-text">حفظ الملف الشخصي</span> <!-- 2026-07-01 -->
+                            <span class="btn-loader" style="display:none;"></span> <!-- 2026-07-01 -->
+                        </button> <!-- 2026-07-01 -->
+                    </form> <!-- 2026-07-01 -->
+                </div>
+                <!-- Removed platform account settings; publishing no longer needs usernames. 2026-07-02 -->
+                <div class="settings-card">
+                    <h2>الخطة الحالية</h2>
+                    <div class="plan-summary">
+                        <div>
+                            <span class="plan-summary-name" id="settings-plan-name">—</span>
+                            <p id="settings-plan-desc">—</p>
+                        </div>
+                        <a href="#/pricing" class="btn btn-outline btn-sm">تغيير الخطة</a>
+                    </div>
+                    <div class="setting-row">
+                        <span>حالة الاشتراك</span>
+                        <strong id="settings-plan-limit">قريباً</strong>
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <h2>المظهر</h2>
+                    <div class="setting-row">
+                        <span>الوضع الداكن</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="dark-mode-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-card reminder-settings-card">
+                    <h2>التفضيلات</h2>
+                    <div class="setting-row reminder-toggle-row">
+                        <div class="setting-copy">
+                            <span>تذكير يومي</span>
+                            <small>تنبيه لطيف لتدوين خاطرة.</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="daily-reminder-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="reminder-time-settings" id="reminder-time-settings">
+                        <span class="setting-label">ذكرني الساعة</span>
+                        <div class="reminder-time-options" role="radiogroup" aria-label="وقت التذكير اليومي">
+                            <label class="reminder-time-option">
+                                <input type="radio" name="reminder-time-preset" value="08:00">
+                                <span>٨:٠٠ ص</span>
+                            </label>
+                            <label class="reminder-time-option">
+                                <input type="radio" name="reminder-time-preset" value="20:00">
+                                <span>٨:٠٠ م</span>
+                            </label>
+                            <label class="reminder-time-option">
+                                <input type="radio" name="reminder-time-preset" value="22:00">
+                                <span>١٠:٠٠ م</span>
+                            </label>
+                            <label class="reminder-time-option">
+                                <input type="radio" name="reminder-time-preset" value="custom">
+                                <span>مخصص</span>
+                            </label>
+                        </div>
+                        <div class="custom-reminder-time" id="custom-reminder-time-row" hidden>
+                            <label for="custom-reminder-time">وقت مخصص</label>
+                            <input type="time" id="custom-reminder-time" value="20:00">
+                        </div>
+                        <p class="reminder-status" id="reminder-status"></p>
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <h2>الإعدادات</h2>
+                    <div class="setting-row">
+                        <span>مسح البيانات المحلية</span>
+                        <button class="btn btn-outline btn-sm btn-danger" id="clear-data-btn">مسح</button>
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <h2>أمان الحساب</h2>
+                    <form id="settings-password-form" class="compact-form">
+                        <div class="form-group">
+                            <label for="settings-new-password">كلمة مرور جديدة</label>
+                            <input type="password" id="settings-new-password" placeholder="••••••••" minlength="8">
+                        </div>
+                        <div class="form-group">
+                            <label for="settings-new-password-confirm">تأكيد كلمة المرور</label>
+                            <input type="password" id="settings-new-password-confirm" placeholder="••••••••"
+                                minlength="8">
+                        </div>
+                        <button type="submit" class="btn btn-outline btn-sm" id="settings-password-btn">
+                            <span class="btn-text">تحديث كلمة المرور</span>
+                            <span class="btn-loader" style="display:none;"></span>
+                        </button>
+                    </form>
+                </div>
+                <div class="settings-card">
+                    <button class="btn btn-danger btn-full" id="logout-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        تسجيل الخروج
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Log Modal -->
+    <div class="modal-overlay" id="log-modal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">إنجاز جديد</h2>
+                <button class="btn btn-ghost btn-icon" id="close-modal-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="log-content">ماذا أنجزت اليوم؟</label>
+                    <textarea id="log-content"
+                        placeholder="مثال: أكملت مشروع API باستخدام Node.js وربطته بقاعدة بيانات PostgreSQL..."
+                        rows="4"></textarea>
+                    <div class="char-counter"><span id="char-count">0</span> / 1000</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="log-images">صور الإنجاز</label>
+                    <input type="file" id="log-images" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
+                    <div class="upload-hint">&#1610;&#1605;&#1603;&#1606;&#1603; &#1573;&#1585;&#1601;&#1575;&#1602; &#1589;&#1608;&#1585; &#1604;&#1604;&#1573;&#1606;&#1580;&#1575;&#1586;. &#1575;&#1604;&#1581;&#1583; &#1575;&#1604;&#1571;&#1602;&#1589;&#1609; 5 &#1605;&#1610;&#1580;&#1575;&#1576;&#1575;&#1610;&#1578; &#1604;&#1603;&#1604; &#1589;&#1608;&#1585;&#1577;.</div>
+                    <div class="selected-images-list" id="selected-images-list">
+                        <span>لم يتم اختيار صور بعد</span>
+                    </div>
+                </div>
+
+                <div class="platform-section">
+
+                    <label class="section-label">
+                        اختر المنصة
+                    </label>
+
+                    <div class="platform-buttons">
+
+                        <button type="button" class="platform-btn active" data-platform="linkedin">
+                            LinkedIn
+                        </button>
+
+                        <button type="button" class="platform-btn" data-platform="x">
+                            X
+                        </button>
+
+                        <button type="button" class="platform-btn" data-platform="instagram">
+                            Instagram
+                        </button>
+
+                    </div>
+
+                </div>
+                <div class="form-group">
+                    <label>نمط المنشور</label>
+                    <div class="style-options" id="style-options">
+                        <button class="style-btn active" data-style="Professional">احترافي</button>
+                        <button class="style-btn" data-style="Friendly">ودّي</button>
+                        <button class="style-btn" data-style="Motivational">تحفيزي</button>
+                        <button class="style-btn" data-style="Technical">تقني</button>
+                        <button class="style-btn" data-style="Short">مختصر</button>
+                        <button class="style-btn" data-style="Storytelling">قصصي</button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="generate-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                        توليد منشور AI
+                    </button>
+                    <button class="btn btn-outline" id="save-log-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                            <polyline points="17 21 17 13 7 13 7 21" />
+                            <polyline points="7 3 7 8 15 8" />
+                        </svg>
+                        حفظ فقط
+                    </button>
+                    <button class="btn btn-ghost" id="cancel-modal-btn">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Preview Modal -->
+    <div class="modal-overlay" id="preview-modal" style="display:none;">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h2>معاينة المنشور</h2>
+                <button class="btn btn-ghost btn-icon" id="close-preview-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="linkedin-preview">
+                    <div class="linkedin-header">
+                        <div class="linkedin-avatar">
+                            <img id="preview-avatar-img" class="preview-avatar-img" alt="" hidden>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                            </svg>
+                        </div>
+                        <div class="linkedin-user-info">
+                            <span class="linkedin-name">أنت</span>
+                            <span class="linkedin-time">الآن • 🌐</span>
+                        </div>
+                    </div>
+                    <div class="linkedin-body" id="preview-content" contenteditable="true"></div>
+                    <div class="preview-images" id="preview-images"></div>
+                    <div class="linkedin-reactions">
+                        <!-- <span>👍 ❤️ 🎉</span> -->
+                    </div>
+                </div>
+                <div class="preview-actions">
+                    <button class="btn btn-primary" id="copy-post-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        نسخ المنشور
+                    </button>
+                    <button class="btn btn-outline" id="regenerate-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10" />
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        </svg>
+                        إعادة التوليد
+                    </button>
+                    <button class="btn btn-outline" id="save-post-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                            <polyline points="17 21 17 13 7 13 7 21" />
+                            <polyline points="7 3 7 8 15 8" />
+                        </svg>
+                        حفظ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Install Prompt -->
+    <div class="install-prompt" id="install-prompt" hidden>
+        <button class="install-prompt-close" id="install-prompt-close" type="button" aria-label="اغلاق">×</button>
+        <img src="imges/logo-192.png" alt="" class="install-prompt-icon">
+        <div class="install-prompt-copy">
+            <strong>ثبت DevLog AI على شاشتك الرئيسية</strong>
+            <span>افتحه كتطبيق مباشر بدون البحث عن الرابط كل مرة.</span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="install-app-btn" type="button">تثبيت</button>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay" style="display:none;">
+        <div class="spinner"></div>
+        <p id="loading-text">جارٍ التحميل...</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="js/script.js"></script>
+</body>
+
+</html>
