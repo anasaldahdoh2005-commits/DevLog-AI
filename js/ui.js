@@ -1572,7 +1572,10 @@ async function publishPostToLinkedIn(text) {
 function getLinkedInErrorMessage(error) {
     const messages = {
         auth_required: 'سجل الدخول أولاً.',
+        invalid_session: 'انتهت جلسة الدخول. سجل الخروج ثم ادخل مرة أخرى.',
+        invalid_user: 'تعذر التحقق من المستخدم. سجل الدخول مرة أخرى.',
         missing_server_config: 'إعدادات LinkedIn على السيرفر غير مكتملة.',
+        supabase_service_failed: 'تعذر حفظ ربط LinkedIn على الخادم. حاول مرة أخرى.',
         linkedin_not_connected: 'حساب LinkedIn غير مربوط.',
         linkedin_reconnect_required: 'جلسة LinkedIn انتهت وتحتاج إعادة ربط.',
         linkedin_scope_missing: 'صلاحية w_member_social غير مفعلة لتطبيق LinkedIn.',

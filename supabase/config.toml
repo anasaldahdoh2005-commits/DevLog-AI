@@ -432,3 +432,22 @@ entrypoint = "./functions/generate-post/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/generate-post/*.html" ]
+
+# The OAuth callback arrives from LinkedIn without a Supabase Authorization
+# header. It is protected by a random, one-time state token. The remaining
+# LinkedIn functions validate the user's session inside requireUser().
+[functions.linkedin-oauth-start]
+enabled = true
+verify_jwt = false
+
+[functions.linkedin-oauth-callback]
+enabled = true
+verify_jwt = false
+
+[functions.linkedin-connection]
+enabled = true
+verify_jwt = false
+
+[functions.linkedin-publish]
+enabled = true
+verify_jwt = false

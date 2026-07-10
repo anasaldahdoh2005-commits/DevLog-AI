@@ -187,6 +187,10 @@ button, input, select, textarea {
 }
 
 /* Buttons */
+[hidden] {
+    display: none !important;
+}
+
 .btn {
     display: inline-flex;
     align-items: center;
