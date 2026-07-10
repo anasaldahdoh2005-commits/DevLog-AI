@@ -14,6 +14,7 @@ import {
     saveUserProfile // 2026-07-01
 } from './db.js';
 import { generatePost, getStyleLabel, getPlatformLabel } from './ai.js';
+import { getLinkedInConnection, startLinkedInOAuth, publishLinkedInPost, disconnectLinkedIn } from './linkedin.js';
 import { navigate } from './router.js';
 
 let selectedStyle = 'Professional';
@@ -25,6 +26,7 @@ let currentImageUrls = [];
 let currentImagePaths = [];
 let avatarPreviewUrl = '';
 let currentUserProfile = { full_name: '', username: '', avatar_path: '', avatar_url: '' }; // 2026-07-01
+let linkedinConnection = { connected: false, can_post: false, needs_reconnect: true };
 
 const PLAN_STORAGE_KEY = 'devlog-selected-plan';
 const REMINDER_STORAGE_KEY = 'devlog-daily-reminder';
@@ -61,6 +63,7 @@ export function initUI() {
     initPricingUI();
     initSettingsUI();
     showAuthRedirectNotice();
+    showLinkedInRedirectNotice();
 
     // Listen for page changes
     window.addEventListener('pagechange', (e) => {
@@ -169,6 +172,25 @@ function showAuthRedirectNotice() {
         showToast('تم تأكيد بريدك الإلكتروني بنجاح');
         cleanAuthQueryParams();
     }
+}
+
+function showLinkedInRedirectNotice() {
+    const query = window.location.hash.includes('?')
+        ? window.location.hash.split('?')[1]
+        : '';
+    const params = new URLSearchParams(query);
+    const status = params.get('linkedin');
+
+    if (!status) return;
+
+    if (status === 'connected') {
+        showToast('تم ربط حساب LinkedIn بنجاح');
+    } else {
+        showToast('تعذر ربط LinkedIn. تحقق من إعدادات التطبيق والصلاحيات.', 'error');
+    }
+
+    const cleanHash = window.location.hash.split('?')[0] || '#/settings';
+    window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}${cleanHash}`);
 }
 
 function cleanAuthQueryParams() {
@@ -825,7 +847,7 @@ function createLogCardHTML(log, compact = false) {
     <div class="publish-menu">
 
         <button class="publish-option share-linkedin">
-            💼 LinkedIn
+            LinkedIn رسمي
         </button>
 
         <button class="publish-option share-x">
@@ -968,6 +990,7 @@ function renderUserProfileSettings() { // 2026-07-01
 // Settings UI
 function initSettingsUI() {
     initDailyReminderUI();
+    initLinkedInSettingsUI();
     document.getElementById('logout-btn').addEventListener('click', async () => {
         await signOut();
         showToast('تم تسجيل الخروج');
@@ -1044,6 +1067,97 @@ function initSettingsUI() {
             } // 2026-07-01
         }); // 2026-07-01
     } // 2026-07-01
+}
+
+function initLinkedInSettingsUI() {
+    const connectBtn = document.getElementById('linkedin-connect-btn');
+    const disconnectBtn = document.getElementById('linkedin-disconnect-btn');
+
+    connectBtn?.addEventListener('click', async () => {
+        if (!getCurrentUser()) {
+            showToast('سجل الدخول أولاً لربط LinkedIn', 'error');
+            navigate('/auth');
+            return;
+        }
+
+        try {
+            toggleBtnLoading(connectBtn, true);
+            const { authorization_url } = await startLinkedInOAuth();
+            window.location.href = authorization_url;
+        } catch (error) {
+            showToast(getLinkedInErrorMessage(error), 'error');
+        } finally {
+            toggleBtnLoading(connectBtn, false);
+        }
+    });
+
+    disconnectBtn?.addEventListener('click', async () => {
+        if (!confirm('هل تريد فصل ربط LinkedIn؟')) return;
+
+        try {
+            toggleBtnLoading(disconnectBtn, true);
+            linkedinConnection = await disconnectLinkedIn();
+            renderLinkedInConnectionStatus();
+            showToast('تم فصل LinkedIn');
+        } catch (error) {
+            showToast(getLinkedInErrorMessage(error), 'error');
+        } finally {
+            toggleBtnLoading(disconnectBtn, false);
+        }
+    });
+}
+
+async function refreshLinkedInConnectionStatus() {
+    if (!getCurrentUser()) {
+        linkedinConnection = { connected: false, can_post: false, needs_reconnect: true };
+        renderLinkedInConnectionStatus();
+        return;
+    }
+
+    try {
+        linkedinConnection = await getLinkedInConnection();
+    } catch (error) {
+        console.error('LinkedIn status error:', error);
+        linkedinConnection = { connected: false, can_post: false, needs_reconnect: true, error: true };
+    }
+
+    renderLinkedInConnectionStatus();
+}
+
+function renderLinkedInConnectionStatus() {
+    const status = document.getElementById('linkedin-connection-status');
+    const detail = document.getElementById('linkedin-connection-detail');
+    const connectBtn = document.getElementById('linkedin-connect-btn');
+    const disconnectBtn = document.getElementById('linkedin-disconnect-btn');
+    const avatar = document.getElementById('linkedin-account-avatar');
+    const connected = Boolean(linkedinConnection?.connected && linkedinConnection?.can_post);
+    const needsReconnect = Boolean(linkedinConnection?.connected && linkedinConnection?.needs_reconnect);
+
+    if (status) {
+        status.textContent = connected
+            ? 'مرتبط وجاهز للنشر'
+            : needsReconnect
+                ? 'يحتاج إعادة ربط'
+                : 'غير مرتبط';
+        status.dataset.state = connected ? 'connected' : needsReconnect ? 'warning' : 'idle';
+    }
+
+    if (detail) {
+        detail.textContent = connected
+            ? `${linkedinConnection.display_name || 'LinkedIn'} · النشر يتم عبر LinkedIn API`
+            : needsReconnect
+                ? 'انتهت الجلسة أو تنقص صلاحية w_member_social.'
+                : 'اربط حسابك حتى ينشر DevLog AI مباشرة بدون روابط مشاركة غير مضمونة.';
+    }
+
+    if (connectBtn) connectBtn.hidden = connected;
+    if (disconnectBtn) disconnectBtn.hidden = !linkedinConnection?.connected;
+
+    if (avatar) {
+        avatar.textContent = linkedinConnection?.display_name
+            ? linkedinConnection.display_name.trim().charAt(0).toUpperCase()
+            : 'in';
+    }
 }
 
 
@@ -1288,6 +1402,7 @@ async function loadSettings() {
     await loadUserProfileCache(); // 2026-07-01
     renderUserProfileSettings(); // 2026-07-01
     renderReminderSettings();
+    await refreshLinkedInConnectionStatus();
 }
 
 // Utilities
@@ -1373,7 +1488,7 @@ function openPublishWindow(url) {
 function getPlatformPublishUrl(platform, text) {
     const encoded = encodeURIComponent(text);
     if (platform === 'linkedin') {
-        return `https://www.linkedin.com/feed/?shareActive=true&text=${encoded}`;
+        return `https://www.linkedin.com/feed/`;
     }
     return `https://twitter.com/intent/tweet?text=${encoded}`;
 }
@@ -1387,6 +1502,11 @@ async function sharePostToPlatform(platform, postContent) {
         return;
     }
 
+    if (platform === 'linkedin') {
+        await publishPostToLinkedIn(text);
+        return;
+    }
+
     const publishUrl = getPlatformPublishUrl(platform, text);
     const opened = openPublishWindow(publishUrl);
 
@@ -1394,6 +1514,59 @@ async function sharePostToPlatform(platform, postContent) {
         ? `تم فتح ${platformName}. إذا لم يظهر النص داخل تطبيق الجوال، افتحه من المتصفح لأن بعض تطبيقات الجوال تمنع تعبئة النص تلقائيًا.`
         : `لم يتم فتح ${platformName}. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.`,
         opened ? 'success' : 'error');
+}
+
+async function publishPostToLinkedIn(text) {
+    try {
+        const status = await getLinkedInConnection();
+        linkedinConnection = status;
+
+        if (!status?.connected || status?.needs_reconnect || !status?.can_post) {
+            await copyText(text);
+            const { authorization_url } = await startLinkedInOAuth();
+            showToast('تم نسخ النص. اربط LinkedIn أولاً ثم أعد النشر الرسمي.');
+            window.location.href = authorization_url;
+            return;
+        }
+
+        const result = await publishLinkedInPost(text);
+        showToast(result?.id ? 'تم نشر المنشور على LinkedIn بنجاح' : 'تم إرسال المنشور إلى LinkedIn');
+        await refreshLinkedInConnectionStatus();
+    } catch (error) {
+        await copyText(text);
+
+        if (['linkedin_not_connected', 'linkedin_reconnect_required', 'linkedin_scope_missing'].includes(error?.code)) {
+            try {
+                const { authorization_url } = await startLinkedInOAuth();
+                showToast('تم نسخ النص. يحتاج LinkedIn إعادة ربط قبل النشر الرسمي.', 'error');
+                window.location.href = authorization_url;
+                return;
+            } catch (oauthError) {
+                showToast(getLinkedInErrorMessage(oauthError), 'error');
+                return;
+            }
+        }
+
+        const opened = openPublishWindow(getPlatformPublishUrl('linkedin', text));
+        showToast(opened
+            ? `${getLinkedInErrorMessage(error)}. تم نسخ النص وفتح LinkedIn كخطة طوارئ.`
+            : `${getLinkedInErrorMessage(error)}. تم نسخ النص. افتح LinkedIn والصقه يدوياً.`,
+            'error');
+    }
+}
+
+function getLinkedInErrorMessage(error) {
+    const messages = {
+        auth_required: 'سجل الدخول أولاً.',
+        missing_server_config: 'إعدادات LinkedIn على السيرفر غير مكتملة.',
+        linkedin_not_connected: 'حساب LinkedIn غير مربوط.',
+        linkedin_reconnect_required: 'جلسة LinkedIn انتهت وتحتاج إعادة ربط.',
+        linkedin_scope_missing: 'صلاحية w_member_social غير مفعلة لتطبيق LinkedIn.',
+        linkedin_rate_limited: 'LinkedIn أوقف الطلب مؤقتاً بسبب كثرة المحاولات.',
+        post_text_too_long: 'نص LinkedIn أطول من الحد المسموح.',
+    };
+
+    return messages[error?.code] || error?.message || 'تعذر تنفيذ عملية LinkedIn';
 }
 
 
@@ -1451,4 +1624,3 @@ document.addEventListener('click', async (e) => {
     }
 
 });
-

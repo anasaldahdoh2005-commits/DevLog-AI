@@ -1242,6 +1242,54 @@ button, input, select, textarea {
     margin-bottom: 0; /* 2026-07-01 */
 } /* 2026-07-01 */
 
+.linkedin-account-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.linkedin-account-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #0a66c2;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+.linkedin-connection-status {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+}
+
+.linkedin-connection-status[data-state="connected"] {
+    color: hsl(160 70% 34%);
+}
+
+.linkedin-connection-status[data-state="warning"] {
+    color: hsl(35 85% 40%);
+}
+
+.linkedin-connection-detail,
+.linkedin-helper-text {
+    color: var(--muted-foreground);
+    font-size: 0.84rem;
+    line-height: 1.55;
+}
+
+.linkedin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+
 .setting-row {
     display: flex;
     align-items: center;

@@ -540,6 +540,31 @@
                     </form> <!-- 2026-07-01 -->
                 </div>
                 <!-- Removed platform account settings; publishing no longer needs usernames. 2026-07-02 -->
+                <div class="settings-card linkedin-settings-card">
+                    <h2>LinkedIn</h2>
+                    <div class="linkedin-account-summary">
+                        <div class="linkedin-account-avatar" id="linkedin-account-avatar">in</div>
+                        <div>
+                            <span class="linkedin-connection-status" id="linkedin-connection-status">غير مرتبط</span>
+                            <p class="linkedin-connection-detail" id="linkedin-connection-detail">
+                                اربط حسابك حتى يتم النشر عبر LinkedIn API الرسمي.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="linkedin-actions">
+                        <button type="button" class="btn btn-primary btn-sm" id="linkedin-connect-btn">
+                            <span class="btn-text">ربط LinkedIn</span>
+                            <span class="btn-loader" style="display:none;"></span>
+                        </button>
+                        <button type="button" class="btn btn-outline btn-sm btn-danger" id="linkedin-disconnect-btn" hidden>
+                            <span class="btn-text">فصل الربط</span>
+                            <span class="btn-loader" style="display:none;"></span>
+                        </button>
+                    </div>
+                    <p class="linkedin-helper-text">
+                        يتطلب النشر الرسمي OAuth وصلاحية w_member_social من LinkedIn.
+                    </p>
+                </div>
                 <div class="settings-card">
                     <h2>الخطة الحالية</h2>
                     <div class="plan-summary">
