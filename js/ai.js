@@ -93,7 +93,7 @@ async function getFunctionErrorMessage(error, data) {
         }
     }
 
-    if (response?.status === 429 || error?.message?.includes('non-2xx')) {
+    if (response?.status === 429) {
         return 'وصلت للحد اليومي لتوليد منشورات AI. استخدمت كل محاولات اليوم، جرّب مرة أخرى بعد بداية اليوم الجديد بتوقيت جرينتش UTC.';
     }
 

@@ -536,12 +536,17 @@ function initLogModalUI() {
     });
 
     // Generate button
-    document.getElementById('generate-btn').addEventListener('click', async () => {
+    const generateBtn = document.getElementById('generate-btn');
+    generateBtn.addEventListener('click', async () => {
         const content = textarea.value.trim();
         if (!content) {
             showToast('يرجى كتابة الإنجاز أولاً', 'error');
             return;
         }
+
+        if (generateBtn.dataset.busy === 'true') return;
+        generateBtn.dataset.busy = 'true';
+        generateBtn.disabled = true;
 
         try {
             showLoading('جارٍ توليد المنشور بالذكاء الاصطناعي...');
@@ -549,12 +554,14 @@ function initLogModalUI() {
             const post = await generatePost(content, selectedStyle, selectedPlatform); // 2026-07-02
             currentGeneratedPost = post;
             currentLogContent = content;
-            hideLoading();
             closeModal('log-modal');
             openPreviewModal(post);
         } catch (error) {
-            hideLoading();
             showToast(error.message, 'error');
+        } finally {
+            hideLoading();
+            generateBtn.dataset.busy = 'false';
+            generateBtn.disabled = false;
         }
     });
 
@@ -671,17 +678,24 @@ function initPreviewModalUI() {
         });
     });
 
-    document.getElementById('regenerate-btn').addEventListener('click', async () => {
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    regenerateBtn.addEventListener('click', async () => {
+        if (regenerateBtn.dataset.busy === 'true') return;
+        regenerateBtn.dataset.busy = 'true';
+        regenerateBtn.disabled = true;
+
         try {
             showLoading('جارٍ إعادة التوليد...');
             const post = await generatePost(currentLogContent, selectedStyle, selectedPlatform); // 2026-07-02
             currentGeneratedPost = post;
           document.getElementById('preview-content').textContent = post;
-            hideLoading();
             showToast('تم إعادة التوليد بنجاح!');
         } catch (error) {
-            hideLoading();
             showToast(error.message, 'error');
+        } finally {
+            hideLoading();
+            regenerateBtn.dataset.busy = 'false';
+            regenerateBtn.disabled = false;
         }
     });
 

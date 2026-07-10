@@ -1,4 +1,16 @@
 const DAILY_AI_LIMIT = 3;
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+const RETRYABLE_GEMINI_STATUSES = new Set([429, 500, 503, 504]);
+
+class ProviderError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public status = 503,
+  ) {
+    super(message);
+  }
+}
 
 Deno.serve(async (req) => {
   const headers = {
@@ -16,8 +28,12 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed" }, 405, headers);
   }
 
+  let authorization = "";
+  let claimId = "";
+  let keepClaim = false;
+
   try {
-    const authorization = req.headers.get("authorization") || "";
+    authorization = req.headers.get("authorization") || "";
     if (!authorization.toLowerCase().startsWith("bearer ")) {
       return json({ error: "Authentication is required" }, 401, headers);
     }
@@ -42,6 +58,14 @@ Deno.serve(async (req) => {
       return json({ error: "Post style is required" }, 400, headers);
     }
 
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      return json({
+        code: "ai_provider_config_error",
+        error: "خدمة الذكاء الاصطناعي غير مهيأة حاليًا.",
+      }, 503, headers);
+    }
+
     const dailyLimit = await claimDailyAiGeneration(authorization);
     if (!dailyLimit.allowed) {
       return json({
@@ -52,11 +76,7 @@ Deno.serve(async (req) => {
         reset_timezone: "UTC",
       }, 429, headers);
     }
-
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiApiKey) {
-      return json({ error: "Missing Gemini API Key" }, 500, headers);
-    }
+    claimId = dailyLimit.claim_id;
 
     const prompt = buildPrompt({
       content,
@@ -67,33 +87,30 @@ Deno.serve(async (req) => {
       mentions, // 2/7/2026
     });
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      console.log("GEMINI API ERROR:", response.status);
-      return json({ error: "Gemini API failed" }, 500, headers);
-    }
-
-    const data = await response.json();
+    const data = await generateWithGemini(geminiApiKey, prompt);
     const generatedPost = extractGeneratedPost(data); // 2/7/2026
 
     if (!generatedPost) {
-      return json({ error: "No text generated from Gemini" }, 500, headers);
+      return json({
+        code: "ai_no_content",
+        error: "لم تُرجع خدمة الذكاء الاصطناعي نصًا. لم تُحتسب هذه المحاولة؛ حاول مرة أخرى.",
+      }, 502, headers);
     }
 
+    keepClaim = true;
     return json({ generated_post: generatedPost }, 200, headers);
   } catch (error) {
     console.log("GENERATE_POST_ERROR:", error instanceof Error ? error.message : "Unknown error");
+    if (error instanceof ProviderError) {
+      return json({ code: error.code, error: error.message }, error.status, headers);
+    }
     return json({ error: "Unexpected server error" }, 500, headers);
+  } finally {
+    if (claimId && !keepClaim && authorization) {
+      await releaseDailyAiGeneration(authorization, claimId).catch((error) => {
+        console.log("DAILY_LIMIT_RELEASE_ERROR:", error instanceof Error ? error.message : "Unknown error");
+      });
+    }
   }
 });
 
@@ -105,7 +122,7 @@ async function claimDailyAiGeneration(authorization: string) {
     throw new Error("Missing Supabase function environment");
   }
 
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_daily_ai_generation`, {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_daily_ai_generation_v2`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -127,7 +144,89 @@ async function claimDailyAiGeneration(authorization: string) {
     allowed: Boolean(row?.allowed),
     used_count: Number(row?.used_count || 0),
     limit_count: Number(row?.limit_count || DAILY_AI_LIMIT),
+    claim_id: String(row?.claim_id || ""),
   };
+}
+
+async function releaseDailyAiGeneration(authorization: string, claimId: string) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (!supabaseUrl || !supabaseAnonKey) return;
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/release_daily_ai_generation`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: supabaseAnonKey,
+      authorization,
+    },
+    body: JSON.stringify({ target_claim_id: claimId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Daily limit release failed (${response.status})`);
+  }
+}
+
+async function generateWithGemini(apiKey: string, prompt: string) {
+  let lastStatus = 0;
+  let lastBody = "";
+
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (attempt > 0) await sleep(800 * (attempt + 1));
+
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+            }),
+            signal: AbortSignal.timeout(30000),
+          },
+        );
+
+        if (response.ok) return await response.json();
+
+        lastStatus = response.status;
+        lastBody = (await response.text().catch(() => "")).slice(0, 800);
+        console.log("GEMINI_API_ERROR:", model, response.status, lastBody);
+
+        if (!RETRYABLE_GEMINI_STATUSES.has(response.status)) break;
+      } catch (error) {
+        lastStatus = 503;
+        lastBody = error instanceof Error ? error.message : "Network error";
+        console.log("GEMINI_NETWORK_ERROR:", model, lastBody);
+      }
+    }
+  }
+
+  if (lastStatus === 403) {
+    throw new ProviderError(
+      "ai_provider_config_error",
+      "مفتاح خدمة الذكاء الاصطناعي غير صالح حاليًا. لم تُحتسب هذه المحاولة.",
+    );
+  }
+
+  if (lastStatus === 429) {
+    throw new ProviderError(
+      "ai_provider_busy",
+      "خدمة الذكاء الاصطناعي وصلت إلى حدها المؤقت. لم تُحتسب هذه المحاولة؛ حاول بعد قليل.",
+    );
+  }
+
+  throw new ProviderError(
+    "ai_provider_unavailable",
+    "خدمة الذكاء الاصطناعي غير متاحة مؤقتًا. لم تُحتسب هذه المحاولة؛ حاول مرة أخرى.",
+  );
+}
+
+function sleep(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function buildPrompt(input: {
