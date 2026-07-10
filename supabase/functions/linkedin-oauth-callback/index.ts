@@ -1,6 +1,8 @@
 import {
   buildAppRedirect,
+  deleteOAuthState,
   getLinkedInRedirectUri,
+  getOAuthState,
   handleError,
   hasScope,
   HttpError,
@@ -8,8 +10,8 @@ import {
   redirect,
   requiredEnv,
   resolveAppUrl,
-  serviceJson,
   sha256Hex,
+  upsertLinkedInAccount,
 } from "../_shared/linkedin.ts";
 
 type OAuthStateRow = {
@@ -53,10 +55,7 @@ Deno.serve(async (req) => {
     }
 
     const stateHash = await sha256Hex(state);
-    const rows = await serviceJson<OAuthStateRow[]>(
-      `linkedin_oauth_states?select=user_id,app_url,expires_at&state_hash=eq.${encodeURIComponent(stateHash)}&limit=1`,
-    );
-    const stateRow = rows?.[0];
+    const stateRow = await getOAuthState<OAuthStateRow>(stateHash);
     const appUrl = resolveAppUrl(stateRow?.app_url || "");
 
     if (!stateRow || new Date(stateRow.expires_at).getTime() <= Date.now()) {
@@ -66,10 +65,7 @@ Deno.serve(async (req) => {
       }));
     }
 
-    await serviceJson(
-      `linkedin_oauth_states?state_hash=eq.${encodeURIComponent(stateHash)}`,
-      { method: "DELETE" },
-    );
+    await deleteOAuthState(stateHash);
 
     const token = await exchangeCodeForToken(code);
     if (!token.access_token) {
@@ -92,23 +88,17 @@ Deno.serve(async (req) => {
       ? new Date(now.getTime() + Number(token.expires_in) * 1000).toISOString()
       : null;
 
-    await serviceJson("linkedin_accounts?on_conflict=user_id", {
-      method: "POST",
-      headers: {
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      },
-      body: JSON.stringify({
-        user_id: stateRow.user_id,
-        linkedin_sub: linkedinSub,
-        author_urn: `urn:li:person:${linkedinSub}`,
-        display_name: String(profile.name || "").slice(0, 160),
-        picture_url: String(profile.picture || "").slice(0, 500),
-        access_token: token.access_token,
-        scope,
-        expires_at: expiresAt,
-        connected_at: now.toISOString(),
-        updated_at: now.toISOString(),
-      }),
+    await upsertLinkedInAccount({
+      user_id: stateRow.user_id,
+      linkedin_sub: linkedinSub,
+      author_urn: `urn:li:person:${linkedinSub}`,
+      display_name: String(profile.name || "").slice(0, 160),
+      picture_url: String(profile.picture || "").slice(0, 500),
+      access_token: token.access_token,
+      scope,
+      expires_at: expiresAt,
+      connected_at: now.toISOString(),
+      updated_at: now.toISOString(),
     });
 
     return redirect(buildAppRedirect(appUrl, { linkedin: "connected" }));

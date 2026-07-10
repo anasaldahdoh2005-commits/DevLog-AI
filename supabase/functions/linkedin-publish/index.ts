@@ -1,12 +1,12 @@
 import {
   corsHeaders,
+  getLinkedInAccount,
   handleError,
   hasScope,
   HttpError,
   isExpired,
   json,
   requireUser,
-  serviceJson,
 } from "../_shared/linkedin.ts";
 
 type LinkedInAccountRow = {
@@ -41,10 +41,10 @@ Deno.serve(async (req) => {
       throw new HttpError(400, "LinkedIn posts must be 3000 characters or less", "post_text_too_long");
     }
 
-    const rows = await serviceJson<LinkedInAccountRow[]>(
-      `linkedin_accounts?select=author_urn,access_token,scope,expires_at&user_id=eq.${encodeURIComponent(user.id)}&limit=1`,
+    const account = await getLinkedInAccount<LinkedInAccountRow>(
+      user.id,
+      "author_urn,access_token,scope,expires_at",
     );
-    const account = rows?.[0];
 
     if (!account) {
       throw new HttpError(409, "LinkedIn account is not connected", "linkedin_not_connected");

@@ -1,3 +1,5 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+
 export const LINKEDIN_SCOPES = "openid profile w_member_social";
 
 export class HttpError extends Error {
@@ -59,7 +61,7 @@ export async function requireUser(req: Request) {
 
   const response = await fetch(`${getSupabaseUrl()}/auth/v1/user`, {
     headers: {
-      apikey: requiredEnv("SUPABASE_ANON_KEY"),
+      apikey: getSupabasePublishableKey(),
       authorization,
     },
   });
@@ -76,33 +78,97 @@ export async function requireUser(req: Request) {
   return { user, authorization };
 }
 
-export async function serviceFetch(path: string, init: RequestInit = {}) {
-  const serviceKey = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
-  const headers = new Headers(init.headers || {});
-  headers.set("apikey", serviceKey);
-  headers.set("Authorization", `Bearer ${serviceKey}`);
+let adminClient: ReturnType<typeof createClient> | null = null;
 
-  if (init.body && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
+function getAdminClient() {
+  if (!adminClient) {
+    adminClient = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
   }
-
-  return fetch(`${getSupabaseUrl()}/rest/v1/${path}`, {
-    ...init,
-    headers,
-  });
+  return adminClient;
 }
 
-export async function serviceJson<T>(path: string, init: RequestInit = {}) {
-  const response = await serviceFetch(path, init);
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    console.log("SUPABASE_SERVICE_ERROR:", response.status, text);
-    throw new HttpError(500, "Supabase service request failed", "supabase_service_failed");
-  }
+function getSupabasePublishableKey() {
+  return getNamedKey("SUPABASE_PUBLISHABLE_KEYS")
+    || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")?.trim()
+    || requiredEnv("SUPABASE_ANON_KEY");
+}
 
-  if (response.status === 204) return null as T;
-  const text = await response.text();
-  return (text ? JSON.parse(text) : null) as T;
+function getSupabaseSecretKey() {
+  return getNamedKey("SUPABASE_SECRET_KEYS")
+    || Deno.env.get("SUPABASE_SECRET_KEY")?.trim()
+    || requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+}
+
+function getNamedKey(environmentName: string) {
+  const raw = Deno.env.get(environmentName)?.trim();
+  if (!raw) return "";
+
+  try {
+    const keys = JSON.parse(raw) as Record<string, string>;
+    return String(keys.default || Object.values(keys)[0] || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+export async function insertOAuthState(row: Record<string, unknown>) {
+  const { error } = await getAdminClient().from("linkedin_oauth_states").insert(row);
+  assertAdminResult(error, "insert_oauth_state");
+}
+
+export async function getOAuthState<T>(stateHash: string) {
+  const { data, error } = await getAdminClient()
+    .from("linkedin_oauth_states")
+    .select("user_id,app_url,expires_at")
+    .eq("state_hash", stateHash)
+    .maybeSingle();
+  assertAdminResult(error, "get_oauth_state");
+  return (data || null) as T | null;
+}
+
+export async function deleteOAuthState(stateHash: string) {
+  const { error } = await getAdminClient()
+    .from("linkedin_oauth_states")
+    .delete()
+    .eq("state_hash", stateHash);
+  assertAdminResult(error, "delete_oauth_state");
+}
+
+export async function upsertLinkedInAccount(row: Record<string, unknown>) {
+  const { error } = await getAdminClient()
+    .from("linkedin_accounts")
+    .upsert(row, { onConflict: "user_id" });
+  assertAdminResult(error, "upsert_linkedin_account");
+}
+
+export async function getLinkedInAccount<T>(userId: string, columns: string) {
+  const { data, error } = await getAdminClient()
+    .from("linkedin_accounts")
+    .select(columns)
+    .eq("user_id", userId)
+    .maybeSingle();
+  assertAdminResult(error, "get_linkedin_account");
+  return (data || null) as T | null;
+}
+
+export async function deleteLinkedInAccount(userId: string) {
+  const { error } = await getAdminClient()
+    .from("linkedin_accounts")
+    .delete()
+    .eq("user_id", userId);
+  assertAdminResult(error, "delete_linkedin_account");
+}
+
+function assertAdminResult(error: { message?: string; code?: string } | null, operation: string) {
+  if (!error) return;
+  console.log("SUPABASE_ADMIN_ERROR:", operation, error.code || "", error.message || "");
+  throw new HttpError(500, "Supabase service request failed", "supabase_service_failed");
 }
 
 export function createStateToken() {

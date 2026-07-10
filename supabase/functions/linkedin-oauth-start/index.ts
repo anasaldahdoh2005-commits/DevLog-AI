@@ -3,12 +3,12 @@ import {
   createStateToken,
   getLinkedInRedirectUri,
   handleError,
+  insertOAuthState,
   json,
   LINKEDIN_SCOPES,
   requireUser,
   requiredEnv,
   resolveAppUrl,
-  serviceJson,
   sha256Hex,
 } from "../_shared/linkedin.ts";
 
@@ -31,15 +31,11 @@ Deno.serve(async (req) => {
     const stateHash = await sha256Hex(state);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
-    await serviceJson("linkedin_oauth_states", {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({
-        state_hash: stateHash,
-        user_id: user.id,
-        app_url: appUrl,
-        expires_at: expiresAt,
-      }),
+    await insertOAuthState({
+      state_hash: stateHash,
+      user_id: user.id,
+      app_url: appUrl,
+      expires_at: expiresAt,
     });
 
     const authorizationUrl = new URL("https://www.linkedin.com/oauth/v2/authorization");

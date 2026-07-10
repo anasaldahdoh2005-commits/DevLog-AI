@@ -1,11 +1,12 @@
 import {
   corsHeaders,
+  deleteLinkedInAccount,
+  getLinkedInAccount,
   handleError,
   hasScope,
   isExpired,
   json,
   requireUser,
-  serviceJson,
 } from "../_shared/linkedin.ts";
 
 type LinkedInAccountRow = {
@@ -34,18 +35,15 @@ Deno.serve(async (req) => {
     const { user } = await requireUser(req);
 
     if (req.method === "DELETE") {
-      await serviceJson(
-        `linkedin_accounts?user_id=eq.${encodeURIComponent(user.id)}`,
-        { method: "DELETE" },
-      );
+      await deleteLinkedInAccount(user.id);
 
       return json({ connected: false }, 200, headers);
     }
 
-    const rows = await serviceJson<LinkedInAccountRow[]>(
-      `linkedin_accounts?select=linkedin_sub,author_urn,display_name,picture_url,scope,expires_at,connected_at,updated_at&user_id=eq.${encodeURIComponent(user.id)}&limit=1`,
+    const account = await getLinkedInAccount<LinkedInAccountRow>(
+      user.id,
+      "linkedin_sub,author_urn,display_name,picture_url,scope,expires_at,connected_at,updated_at",
     );
-    const account = rows?.[0];
 
     if (!account) {
       return json({ connected: false }, 200, headers);
