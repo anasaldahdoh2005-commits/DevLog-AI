@@ -156,11 +156,26 @@ async function exchangeCodeForToken(code: string) {
   });
 
   if (!response.ok) {
-    console.log("LINKEDIN_TOKEN_ERROR:", response.status);
-    throw new HttpError(502, "LinkedIn token exchange failed", "linkedin_token_failed");
+    const details = await response.text().catch(() => "");
+    console.log("LINKEDIN_TOKEN_ERROR:", response.status, details.slice(0, 500));
+    throw mapLinkedInTokenError(response.status, details);
   }
 
   return await response.json() as LinkedInTokenResponse;
+}
+
+function mapLinkedInTokenError(status: number, details: string) {
+  const normalized = details.toLowerCase();
+  if (normalized.includes("redirect_uri") || normalized.includes("redirect uri")) {
+    return new HttpError(502, "LinkedIn redirect URI does not match the app configuration", "linkedin_redirect_uri_mismatch");
+  }
+  if (normalized.includes("client secret") || normalized.includes("client_id") || normalized.includes("client id")) {
+    return new HttpError(502, "LinkedIn client credentials are invalid", "linkedin_client_credentials_invalid");
+  }
+  if (normalized.includes("already used") || normalized.includes("expired") || normalized.includes("invalid grant")) {
+    return new HttpError(502, "LinkedIn authorization code expired or was already used", "linkedin_code_expired");
+  }
+  return new HttpError(502, `LinkedIn token exchange failed (${status})`, "linkedin_token_failed");
 }
 
 async function getLinkedInUserInfo(accessToken: string) {

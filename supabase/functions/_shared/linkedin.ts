@@ -49,8 +49,7 @@ export function getSupabaseUrl() {
 }
 
 export function getLinkedInRedirectUri() {
-  return Deno.env.get("LINKEDIN_REDIRECT_URI")?.trim()
-    || `${getSupabaseUrl()}/functions/v1/linkedin-oauth-callback`;
+  return `${getSupabaseUrl()}/functions/v1/linkedin-oauth-callback`;
 }
 
 export async function requireUser(req: Request) {
