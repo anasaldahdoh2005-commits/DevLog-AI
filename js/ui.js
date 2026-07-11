@@ -882,7 +882,11 @@ function createLogCardHTML(log, compact = false) {
     <div class="publish-menu">
 
         <button class="publish-option share-linkedin">
-            LinkedIn رسمي
+            LinkedIn سريع (نسخ + فتح)
+        </button>
+
+        <button class="publish-option share-linkedin-official">
+            نشر مباشر على LinkedIn
         </button>
 
         <button class="publish-option share-x">
@@ -1107,6 +1111,15 @@ function initSettingsUI() {
 function initLinkedInSettingsUI() {
     const connectBtn = document.getElementById('linkedin-connect-btn');
     const disconnectBtn = document.getElementById('linkedin-disconnect-btn');
+    const openBtn = document.getElementById('linkedin-open-btn');
+
+    openBtn?.addEventListener('click', () => {
+        const opened = openPublishWindow(getPlatformPublishUrl('linkedin', ''));
+        showToast(opened
+            ? 'تم فتح LinkedIn. أنشئ منشورًا جديدًا والصق النص.'
+            : 'تعذر فتح LinkedIn. اسمح بالنوافذ المنبثقة ثم حاول مجددًا.',
+            opened ? 'success' : 'error');
+    });
 
     connectBtn?.addEventListener('click', async () => {
         if (!getCurrentUser()) {
@@ -1538,7 +1551,7 @@ async function sharePostToPlatform(platform, postContent) {
     }
 
     if (platform === 'linkedin') {
-        await publishPostToLinkedIn(text);
+        await shareLinkedInManually(text);
         return;
     }
 
@@ -1549,6 +1562,26 @@ async function sharePostToPlatform(platform, postContent) {
         ? `تم فتح ${platformName}. إذا لم يظهر النص داخل تطبيق الجوال، افتحه من المتصفح لأن بعض تطبيقات الجوال تمنع تعبئة النص تلقائيًا.`
         : `لم يتم فتح ${platformName}. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.`,
         opened ? 'success' : 'error');
+}
+
+async function shareLinkedInManually(text) {
+    const copied = await copyText(text);
+    const opened = openPublishWindow(getPlatformPublishUrl('linkedin', text));
+
+    if (copied && opened) {
+        showToast('تم نسخ المنشور وفتح LinkedIn. الصق النص ثم اضغط نشر.');
+        return;
+    }
+
+    if (copied) {
+        showToast('تم نسخ المنشور. افتح LinkedIn والصق النص يدويًا.', 'error');
+        return;
+    }
+
+    showToast(opened
+        ? 'تم فتح LinkedIn، لكن تعذر نسخ النص. انسخه يدويًا من المعاينة.'
+        : 'تعذر النسخ وفتح LinkedIn. اسمح بالنوافذ المنبثقة وحاول مجددًا.',
+        'error');
 }
 
 async function publishPostToLinkedIn(text) {
@@ -1645,6 +1678,12 @@ document.addEventListener('click', async (e) => {
     if (e.target.closest('.share-linkedin')) {
         const card = e.target.closest('.log-card');
         await sharePostToPlatform('linkedin', card?.dataset.post);
+        return;
+    }
+
+    if (e.target.closest('.share-linkedin-official')) {
+        const card = e.target.closest('.log-card');
+        await publishPostToLinkedIn(card?.dataset.post);
         return;
     }
 
