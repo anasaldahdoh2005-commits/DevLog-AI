@@ -52,6 +52,16 @@ export function getLinkedInRedirectUri() {
   return `${getSupabaseUrl()}/functions/v1/linkedin-oauth-callback`;
 }
 
+export function requiredCredentialEnv(name: string) {
+  const value = requiredEnv(name);
+  const first = value.charAt(0);
+  const last = value.charAt(value.length - 1);
+  if (value.length >= 2 && ((first === '"' && last === '"') || (first === "'" && last === "'"))) {
+    return value.slice(1, -1).trim();
+  }
+  return value;
+}
+
 export async function requireUser(req: Request) {
   const authorization = req.headers.get("authorization") || "";
   if (!authorization.toLowerCase().startsWith("bearer ")) {

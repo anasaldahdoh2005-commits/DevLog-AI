@@ -881,12 +881,12 @@ function createLogCardHTML(log, compact = false) {
 
     <div class="publish-menu">
 
-        <button class="publish-option share-linkedin">
-            LinkedIn سريع (نسخ + فتح)
-        </button>
-
         <button class="publish-option share-linkedin-official">
             نشر مباشر على LinkedIn
+        </button>
+
+        <button class="publish-option share-linkedin">
+            نشر يدوي احتياطي (نسخ + فتح)
         </button>
 
         <button class="publish-option share-x">

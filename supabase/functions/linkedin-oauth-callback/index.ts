@@ -8,7 +8,7 @@ import {
   HttpError,
   LINKEDIN_SCOPES,
   redirect,
-  requiredEnv,
+  requiredCredentialEnv,
   resolveAppUrl,
   sha256Hex,
   upsertLinkedInAccount,
@@ -143,8 +143,8 @@ async function exchangeCodeForToken(code: string) {
     grant_type: "authorization_code",
     code,
     redirect_uri: getLinkedInRedirectUri(),
-    client_id: requiredEnv("LINKEDIN_CLIENT_ID"),
-    client_secret: requiredEnv("LINKEDIN_CLIENT_SECRET"),
+    client_id: requiredCredentialEnv("LINKEDIN_CLIENT_ID"),
+    client_secret: requiredCredentialEnv("LINKEDIN_CLIENT_SECRET"),
   });
 
   const response = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
@@ -166,13 +166,20 @@ async function exchangeCodeForToken(code: string) {
 
 function mapLinkedInTokenError(status: number, details: string) {
   const normalized = details.toLowerCase();
-  if (normalized.includes("redirect_uri") || normalized.includes("redirect uri")) {
+  let providerCode = "";
+  try {
+    providerCode = String(JSON.parse(details)?.error || "").toLowerCase();
+  } catch {
+    // LinkedIn can return either JSON or plain text.
+  }
+
+  if (providerCode === "invalid_redirect_uri" || normalized.includes("redirect_uri") || normalized.includes("redirect uri")) {
     return new HttpError(502, "LinkedIn redirect URI does not match the app configuration", "linkedin_redirect_uri_mismatch");
   }
-  if (normalized.includes("client secret") || normalized.includes("client_id") || normalized.includes("client id")) {
+  if (providerCode === "invalid_client" || normalized.includes("invalid_client") || normalized.includes("client secret") || normalized.includes("client_id") || normalized.includes("client id") || normalized.includes("client authentication")) {
     return new HttpError(502, "LinkedIn client credentials are invalid", "linkedin_client_credentials_invalid");
   }
-  if (normalized.includes("already used") || normalized.includes("expired") || normalized.includes("invalid grant")) {
+  if (providerCode === "invalid_grant" || normalized.includes("invalid_grant") || normalized.includes("already used") || normalized.includes("expired") || normalized.includes("invalid grant")) {
     return new HttpError(502, "LinkedIn authorization code expired or was already used", "linkedin_code_expired");
   }
   return new HttpError(502, `LinkedIn token exchange failed (${status})`, "linkedin_token_failed");

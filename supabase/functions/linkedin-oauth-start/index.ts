@@ -7,7 +7,7 @@ import {
   json,
   LINKEDIN_SCOPES,
   requireUser,
-  requiredEnv,
+  requiredCredentialEnv,
   resolveAppUrl,
   sha256Hex,
 } from "../_shared/linkedin.ts";
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 
     const authorizationUrl = new URL("https://www.linkedin.com/oauth/v2/authorization");
     authorizationUrl.searchParams.set("response_type", "code");
-    authorizationUrl.searchParams.set("client_id", requiredEnv("LINKEDIN_CLIENT_ID"));
+    authorizationUrl.searchParams.set("client_id", requiredCredentialEnv("LINKEDIN_CLIENT_ID"));
     authorizationUrl.searchParams.set("redirect_uri", getLinkedInRedirectUri());
     authorizationUrl.searchParams.set("scope", LINKEDIN_SCOPES);
     authorizationUrl.searchParams.set("state", state);
