@@ -253,7 +253,7 @@ export async function uploadUserAvatar(file) {
 
     return {
         path: avatarPath,
-        url: await getSignedStorageUrl(AVATAR_BUCKET, avatarPath)
+        url: await getSignedStorageUrl(AVATAR_BUCKET, avatarPath, 7 * 24 * 60 * 60)
     };
 }
 
@@ -277,10 +277,30 @@ export async function getCurrentSubscription() {
 }
 
 export async function getStats() {
-    const logs = await getLogs();
-    const totalLogs = logs.length;
-    const postsGenerated = logs.filter(l => l.generated_post).length;
-    const lastActivity = logs.length > 0 ? formatDate(logs[0].created_at) : 'â€”';
+    const client = getSupabase();
+    const user = getCurrentUser();
+
+    if (!client || !user) {
+        const logs = getLocalLogs();
+        return {
+            totalLogs: logs.length,
+            postsGenerated: logs.filter(log => log.generated_post).length,
+            lastActivity: logs.length > 0 ? formatDate(logs[0].created_at) : '—'
+        };
+    }
+
+    const [totalResult, generatedResult, latestResult] = await Promise.all([
+        client.from(TABLE_NAME).select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+        client.from(TABLE_NAME).select('id', { count: 'exact', head: true }).eq('user_id', user.id).not('generated_post', 'is', null),
+        client.from(TABLE_NAME).select('created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+    ]);
+
+    const error = totalResult.error || generatedResult.error || latestResult.error;
+    if (error) throw error;
+
+    const totalLogs = totalResult.count || 0;
+    const postsGenerated = generatedResult.count || 0;
+    const lastActivity = latestResult.data?.created_at ? formatDate(latestResult.data.created_at) : '—';
 
     return { totalLogs, postsGenerated, lastActivity };
 }
@@ -471,17 +491,17 @@ async function resolveUserProfile(profile = {}) {
 
     return {
         ...normalized,
-        avatar_url: isInlineUrl ? avatarPath : await getSignedStorageUrl(AVATAR_BUCKET, avatarPath)
+        avatar_url: isInlineUrl ? avatarPath : await getSignedStorageUrl(AVATAR_BUCKET, avatarPath, 7 * 24 * 60 * 60)
     };
 }
 
-async function getSignedStorageUrl(bucket, storagePath) {
+async function getSignedStorageUrl(bucket, storagePath, expiresIn = 60 * 60) {
     if (!storagePath) return '';
 
     const client = getSupabase();
     if (!client) return '';
 
-    const { data, error } = await client.storage.from(bucket).createSignedUrl(storagePath, 60 * 60);
+    const { data, error } = await client.storage.from(bucket).createSignedUrl(storagePath, expiresIn);
     if (error) return '';
     return data?.signedUrl || '';
 }

@@ -27,8 +27,14 @@ let currentImagePaths = [];
 let avatarPreviewUrl = '';
 let currentUserProfile = { full_name: '', username: '', avatar_path: '', avatar_url: '' }; // 2026-07-01
 let linkedinConnection = { connected: false, can_post: false, needs_reconnect: true };
+let profileRefreshPromise = null;
 
 const PLAN_STORAGE_KEY = 'devlog-selected-plan';
+const PROFILE_CACHE_PREFIX = 'devlog-profile-cache:';
+const PROFILE_CACHE_REFRESH_AGE = 10 * 60 * 1000;
+const PROFILE_CACHE_MAX_AGE = 6 * 24 * 60 * 60 * 1000;
+const DASHBOARD_CACHE_PREFIX = 'devlog-dashboard-cache:';
+const DASHBOARD_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 const REMINDER_STORAGE_KEY = 'devlog-daily-reminder';
 const REMINDER_LAST_SHOWN_KEY = 'devlog-daily-reminder-last-shown';
 const DEFAULT_REMINDER_SETTINGS = { enabled: true, preset: '20:00', time: '20:00' };
@@ -98,13 +104,55 @@ function hideLoading() {
     document.getElementById('loading-overlay').style.display = 'none';
 }
 
-async function loadUserProfileCache() { // 2026-07-01
-    try { // 2026-07-01
-        currentUserProfile = await getUserProfile(); // 2026-07-01
-    } catch (error) { // 2026-07-01
-        console.error('Error loading user profile:', error); // 2026-07-01
-    } // 2026-07-01
-} // 2026-07-01
+async function loadUserProfileCache() {
+    const cached = readCachedUserProfile();
+    if (cached?.profile) currentUserProfile = cached.profile;
+
+    const cacheAge = cached ? Date.now() - cached.cachedAt : Infinity;
+    if (cacheAge <= PROFILE_CACHE_REFRESH_AGE) return;
+
+    if (!profileRefreshPromise) {
+        profileRefreshPromise = getUserProfile()
+            .then(profile => {
+                currentUserProfile = profile;
+                cacheUserProfile(profile);
+                renderDashboardProfileName();
+                return profile;
+            })
+            .catch(error => {
+                console.error('Error loading user profile:', error);
+                return currentUserProfile;
+            })
+            .finally(() => {
+                profileRefreshPromise = null;
+            });
+    }
+
+    if (!cached?.profile) await profileRefreshPromise;
+}
+
+function getProfileCacheKey() {
+    const userId = getCurrentUser()?.id || 'local';
+    return `${PROFILE_CACHE_PREFIX}${userId}`;
+}
+
+function readCachedUserProfile() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(getProfileCacheKey()) || 'null');
+        if (!cached?.profile || Date.now() - Number(cached.cachedAt || 0) > PROFILE_CACHE_MAX_AGE) return null;
+        return cached;
+    } catch {
+        return null;
+    }
+}
+
+function cacheUserProfile(profile) {
+    try {
+        localStorage.setItem(getProfileCacheKey(), JSON.stringify({ profile, cachedAt: Date.now() }));
+    } catch {
+        // The app still works when browser storage is unavailable.
+    }
+}
  // 2026-07-01
 function getProfileDisplayName() { // 2026-07-01
     const user = getCurrentUser(); // 2026-07-01
@@ -128,7 +176,7 @@ function renderProfileAvatars() {
     targets.forEach(({ img, root }) => {
         if (!img || !root) return;
         img.hidden = !avatarUrl;
-        if (avatarUrl) img.src = avatarUrl;
+        if (avatarUrl && img.getAttribute('src') !== avatarUrl) img.src = avatarUrl;
         root.classList.toggle('has-image', Boolean(avatarUrl));
     });
 }
@@ -478,18 +526,65 @@ function initDashboardUI() {
 }
 
 async function loadDashboard() {
-    try {
-        await loadUserProfileCache(); // 2026-07-01
-        renderDashboardProfileName(); // 2026-07-01
-        const stats = await getStats();
-        document.getElementById('stat-total').textContent = stats.totalLogs;
-        document.getElementById('stat-posts').textContent = stats.postsGenerated;
-        document.getElementById('stat-last').textContent = stats.lastActivity;
+    const cachedDashboard = readDashboardCache();
+    if (cachedDashboard) renderDashboardData(cachedDashboard.stats, cachedDashboard.recentLogs);
 
-        const recentLogs = await getLogs({ limit: 5 });
-        renderRecentLogs(recentLogs);
+    try {
+        const profilePromise = loadUserProfileCache().then(renderDashboardProfileName);
+        const dashboardPromise = Promise.all([
+            getStats(),
+            getLogs({ limit: 5 })
+        ]);
+
+        if (cachedDashboard) {
+            void dashboardPromise.then(([stats, recentLogs]) => {
+                cacheDashboardData(stats, recentLogs);
+                renderDashboardData(stats, recentLogs);
+            }).catch(error => console.error('Error refreshing dashboard:', error));
+            await profilePromise;
+            return;
+        }
+
+        const [stats, recentLogs] = await dashboardPromise;
+        await profilePromise;
+        cacheDashboardData(stats, recentLogs);
+        renderDashboardData(stats, recentLogs);
     } catch (error) {
         console.error('Error loading dashboard:', error);
+    }
+}
+
+function renderDashboardData(stats, recentLogs) {
+    if (!stats || !Array.isArray(recentLogs)) return;
+    const total = document.getElementById('stat-total');
+    const posts = document.getElementById('stat-posts');
+    const last = document.getElementById('stat-last');
+    if (total) total.textContent = stats.totalLogs;
+    if (posts) posts.textContent = stats.postsGenerated;
+    if (last) last.textContent = stats.lastActivity;
+    renderRecentLogs(recentLogs);
+}
+
+function getDashboardCacheKey() {
+    const userId = getCurrentUser()?.id || 'local';
+    return `${DASHBOARD_CACHE_PREFIX}${userId}`;
+}
+
+function readDashboardCache() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(getDashboardCacheKey()) || 'null');
+        if (!cached || Date.now() - Number(cached.cachedAt || 0) > DASHBOARD_CACHE_MAX_AGE) return null;
+        return cached;
+    } catch {
+        return null;
+    }
+}
+
+function cacheDashboardData(stats, recentLogs) {
+    try {
+        localStorage.setItem(getDashboardCacheKey(), JSON.stringify({ stats, recentLogs, cachedAt: Date.now() }));
+    } catch {
+        // Ignore storage quota/privacy mode errors.
     }
 }
 
@@ -882,11 +977,7 @@ function createLogCardHTML(log, compact = false) {
     <div class="publish-menu">
 
         <button class="publish-option share-linkedin">
-            LinkedIn — مراجعة ثم نشر
-        </button>
-
-        <button class="publish-option share-linkedin-official">
-            نشر مباشر عبر الربط
+            LinkedIn
         </button>
 
         <button class="publish-option share-x">
@@ -1029,7 +1120,6 @@ function renderUserProfileSettings() { // 2026-07-01
 // Settings UI
 function initSettingsUI() {
     initDailyReminderUI();
-    initLinkedInSettingsUI();
     document.getElementById('logout-btn').addEventListener('click', async () => {
         await signOut();
         showToast('تم تسجيل الخروج');
@@ -1093,6 +1183,7 @@ function initSettingsUI() {
                 }); // 2026-07-01
 
                 if (avatarUrl) currentUserProfile.avatar_url = avatarUrl;
+                cacheUserProfile(currentUserProfile);
                 if (avatarPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(avatarPreviewUrl);
                 avatarPreviewUrl = '';
                 renderUserProfileSettings(); // 2026-07-01
@@ -1450,7 +1541,6 @@ async function loadSettings() {
     await loadUserProfileCache(); // 2026-07-01
     renderUserProfileSettings(); // 2026-07-01
     renderReminderSettings();
-    await refreshLinkedInConnectionStatus();
 }
 
 // Utilities
@@ -1692,12 +1782,6 @@ document.addEventListener('click', async (e) => {
     if (e.target.closest('.share-linkedin')) {
         const card = e.target.closest('.log-card');
         await sharePostToPlatform('linkedin', card?.dataset.post);
-        return;
-    }
-
-    if (e.target.closest('.share-linkedin-official')) {
-        const card = e.target.closest('.log-card');
-        await publishPostToLinkedIn(card?.dataset.post);
         return;
     }
 
