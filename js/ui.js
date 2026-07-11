@@ -881,12 +881,12 @@ function createLogCardHTML(log, compact = false) {
 
     <div class="publish-menu">
 
-        <button class="publish-option share-linkedin-official">
-            نشر مباشر على LinkedIn
+        <button class="publish-option share-linkedin">
+            LinkedIn — مراجعة ثم نشر
         </button>
 
-        <button class="publish-option share-linkedin">
-            نشر يدوي احتياطي (نسخ + فتح)
+        <button class="publish-option share-linkedin-official">
+            نشر مباشر عبر الربط
         </button>
 
         <button class="publish-option share-x">
@@ -1536,7 +1536,7 @@ function openPublishWindow(url) {
 function getPlatformPublishUrl(platform, text) {
     const encoded = encodeURIComponent(text);
     if (platform === 'linkedin') {
-        return `https://www.linkedin.com/feed/`;
+        return `https://www.linkedin.com/feed/?shareActive=true&text=${encoded}`;
     }
     return `https://twitter.com/intent/tweet?text=${encoded}`;
 }
@@ -1565,16 +1565,30 @@ async function sharePostToPlatform(platform, postContent) {
 }
 
 async function shareLinkedInManually(text) {
-    const copied = await copyText(text);
+    if (isMobileDevice() && navigator.share) {
+        try {
+            await navigator.share({ text });
+            showToast('تم إرسال النص إلى قائمة المشاركة. اختر LinkedIn ثم راجعه وانشره.');
+            return;
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                const copied = await copyText(text);
+                if (copied) showToast('تم نسخ المنشور للحافظة.');
+                return;
+            }
+        }
+    }
+
     const opened = openPublishWindow(getPlatformPublishUrl('linkedin', text));
+    const copied = await copyText(text);
 
     if (copied && opened) {
-        showToast('تم نسخ المنشور وفتح LinkedIn. الصق النص ثم اضغط نشر.');
+        showToast('تم فتح LinkedIn والنص مجهز. راجعه ثم اضغط نشر.');
         return;
     }
 
     if (copied) {
-        showToast('تم نسخ المنشور. افتح LinkedIn والصق النص يدويًا.', 'error');
+        showToast('تم نسخ المنشور. افتح LinkedIn والصقه يدويًا.', 'error');
         return;
     }
 

@@ -1294,6 +1294,41 @@ button, input, select, textarea {
     margin-bottom: 0.75rem;
 }
 
+.app-guide-card {
+    grid-column: 1 / -1;
+}
+
+.app-guide-steps {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0 0 1rem;
+    padding-inline-start: 1.4rem;
+    color: var(--foreground);
+    line-height: 1.7;
+}
+
+.app-guide-device-notes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.app-guide-device-notes p {
+    margin: 0;
+    padding: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+    .app-guide-device-notes {
+        grid-template-columns: 1fr;
+    }
+}
+
 .setting-row {
     display: flex;
     align-items: center;
