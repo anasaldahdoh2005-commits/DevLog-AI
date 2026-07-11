@@ -25,7 +25,7 @@ supabase secrets set LINKEDIN_CLIENT_ID="your-linkedin-client-id"
 supabase secrets set LINKEDIN_CLIENT_SECRET="your-linkedin-client-secret"
 supabase secrets set LINKEDIN_REDIRECT_URI="https://hhjppsogkzxiobbbcxic.supabase.co/functions/v1/linkedin-oauth-callback"
 supabase secrets set LINKEDIN_ALLOWED_APP_URLS="https://anasaldahdoh2005-commits.github.io/DevLog-AI/,http://localhost:3000/,http://127.0.0.1:3000/"
-supabase secrets set LINKEDIN_VERSION="202607"
+supabase secrets set LINKEDIN_VERSION="202605"
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` must also be available to Edge Functions.
