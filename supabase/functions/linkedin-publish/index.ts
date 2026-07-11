@@ -61,7 +61,9 @@ Deno.serve(async (req) => {
     // The Posts API is the current LinkedIn API for creating organic posts.
     // Keep the version configurable so LinkedIn version changes do not require
     // another code deployment.
-    const linkedinVersion = Deno.env.get("LINKEDIN_VERSION")?.trim() || "202605";
+    // 202605 is the latest documented stable LinkedIn Marketing API version.
+    // Keep this explicit so a stale dashboard secret cannot override it.
+    const linkedinVersion = "202605";
     const response = await fetch("https://api.linkedin.com/rest/posts", {
       method: "POST",
       headers: {

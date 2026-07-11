@@ -25,7 +25,6 @@ supabase secrets set LINKEDIN_CLIENT_ID="your-linkedin-client-id"
 supabase secrets set LINKEDIN_CLIENT_SECRET="your-linkedin-client-secret"
 supabase secrets set LINKEDIN_REDIRECT_URI="https://hhjppsogkzxiobbbcxic.supabase.co/functions/v1/linkedin-oauth-callback"
 supabase secrets set LINKEDIN_ALLOWED_APP_URLS="https://anasaldahdoh2005-commits.github.io/DevLog-AI/,http://localhost:3000/,http://127.0.0.1:3000/"
-supabase secrets set LINKEDIN_VERSION="202605"
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` must also be available to Edge Functions.
@@ -55,7 +54,7 @@ supabase functions deploy linkedin-publish
 ## Notes
 
 - The implementation publishes text posts. The previous UI also only sent text to LinkedIn.
-- `LINKEDIN_VERSION` is configurable because LinkedIn requires a version header for the Posts API.
+- The publisher sends the documented stable `Linkedin-Version: 202605` header required by LinkedIn.
 - Image publishing can be added later through LinkedIn's asset upload flow. It should use controlled Supabase Storage paths or a strict allow-list, not arbitrary user-submitted URLs, to avoid SSRF and unintended data exfiltration risks.
 - The old `linkedin.com/feed/?shareActive=true&text=...` path is no longer the primary path because mobile apps/deep links can ignore the `text` parameter.
 
