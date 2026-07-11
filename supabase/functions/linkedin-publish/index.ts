@@ -58,25 +58,29 @@ Deno.serve(async (req) => {
       throw new HttpError(403, "LinkedIn permission w_member_social is required", "linkedin_scope_missing");
     }
 
-    const response = await fetch("https://api.linkedin.com/v2/ugcPosts", {
+    // The Posts API is the current LinkedIn API for creating organic posts.
+    // Keep the version configurable so LinkedIn version changes do not require
+    // another code deployment.
+    const linkedinVersion = Deno.env.get("LINKEDIN_VERSION")?.trim() || "202607";
+    const response = await fetch("https://api.linkedin.com/rest/posts", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${account.access_token}`,
         "Content-Type": "application/json",
         "X-Restli-Protocol-Version": "2.0.0",
+        "Linkedin-Version": linkedinVersion,
       },
       body: JSON.stringify({
         author: account.author_urn,
+        commentary: text,
+        visibility,
+        distribution: {
+          feedDistribution: "MAIN_FEED",
+          targetEntities: [],
+          thirdPartyDistributionChannels: [],
+        },
         lifecycleState: "PUBLISHED",
-        specificContent: {
-          "com.linkedin.ugc.ShareContent": {
-            shareCommentary: { text },
-            shareMediaCategory: "NONE",
-          },
-        },
-        visibility: {
-          "com.linkedin.ugc.MemberNetworkVisibility": visibility,
-        },
+        isReshareDisabledByAuthor: false,
       }),
     });
 

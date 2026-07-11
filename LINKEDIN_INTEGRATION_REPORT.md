@@ -5,7 +5,7 @@
 - Added a real LinkedIn OAuth flow through Supabase Edge Functions.
 - Added secure server-side token storage in `public.linkedin_accounts`.
 - Added temporary OAuth state storage in `public.linkedin_oauth_states`.
-- Replaced the LinkedIn publish action so it calls LinkedIn's official `ugcPosts` API.
+- Replaced the LinkedIn publish action so it calls LinkedIn's current official `Posts API` (`/rest/posts`).
 - Kept a fallback: if API publishing fails, DevLog AI copies the post text and opens LinkedIn manually.
 - Added a LinkedIn connection card in Settings with connect, reconnect, and disconnect controls.
 
@@ -25,6 +25,7 @@ supabase secrets set LINKEDIN_CLIENT_ID="your-linkedin-client-id"
 supabase secrets set LINKEDIN_CLIENT_SECRET="your-linkedin-client-secret"
 supabase secrets set LINKEDIN_REDIRECT_URI="https://hhjppsogkzxiobbbcxic.supabase.co/functions/v1/linkedin-oauth-callback"
 supabase secrets set LINKEDIN_ALLOWED_APP_URLS="https://anasaldahdoh2005-commits.github.io/DevLog-AI/,http://localhost:3000/,http://127.0.0.1:3000/"
+supabase secrets set LINKEDIN_VERSION="202607"
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` must also be available to Edge Functions.
@@ -54,6 +55,7 @@ supabase functions deploy linkedin-publish
 ## Notes
 
 - The implementation publishes text posts. The previous UI also only sent text to LinkedIn.
+- `LINKEDIN_VERSION` is configurable because LinkedIn requires a version header for the Posts API.
 - Image publishing can be added later through LinkedIn's asset upload flow. It should use controlled Supabase Storage paths or a strict allow-list, not arbitrary user-submitted URLs, to avoid SSRF and unintended data exfiltration risks.
 - The old `linkedin.com/feed/?shareActive=true&text=...` path is no longer the primary path because mobile apps/deep links can ignore the `text` parameter.
 

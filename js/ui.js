@@ -182,15 +182,33 @@ function showLinkedInRedirectNotice() {
     const status = params.get('linkedin');
 
     if (!status) return;
+    const reason = params.get('reason') || 'unknown_error';
 
     if (status === 'connected') {
         showToast('تم ربط حساب LinkedIn بنجاح');
     } else {
-        showToast('تعذر ربط LinkedIn. تحقق من إعدادات التطبيق والصلاحيات.', 'error');
+        showToast(`تعذر ربط LinkedIn: ${getLinkedInRedirectErrorMessage(reason)} [${reason}]`, 'error');
     }
 
     const cleanHash = window.location.hash.split('?')[0] || '#/settings';
     window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}${cleanHash}`);
+}
+
+function getLinkedInRedirectErrorMessage(reason) {
+    const messages = {
+        access_denied: 'تم رفض الإذن من LinkedIn.',
+        linkedin_config_missing: 'إعدادات LinkedIn المطلوبة غير موجودة على الخادم.',
+        linkedin_token_failed: 'فشل تبديل رمز التفويض بالتوكن.',
+        linkedin_token_missing: 'لم يُرجع LinkedIn توكن وصول.',
+        linkedin_userinfo_failed: 'فشل قراءة ملف LinkedIn.',
+        linkedin_member_missing: 'لم يُرجع LinkedIn معرّف العضو.',
+        linkedin_scope_missing: 'صلاحية النشر المطلوبة غير موجودة.',
+        linkedin_account_save_failed: 'تمت قراءة الحساب لكن فشل حفظه.',
+        supabase_service_failed: 'فشل طلب قاعدة البيانات أثناء حفظ الحساب.',
+        expired_state: 'انتهت صلاحية جلسة الربط؛ ابدأ الربط من جديد.',
+        missing_oauth_params: 'لم تصل بيانات الرجوع المطلوبة من LinkedIn.',
+    };
+    return messages[reason] || 'حدث خطأ بعد الرجوع من LinkedIn.';
 }
 
 function cleanAuthQueryParams() {
@@ -1556,7 +1574,12 @@ async function publishPostToLinkedIn(text) {
                 window.location.href = authorization_url;
                 return;
             } catch (oauthError) {
-                showToast(getLinkedInErrorMessage(oauthError), 'error');
+                await copyText(text);
+                const opened = openPublishWindow(getPlatformPublishUrl('linkedin', text));
+                showToast(opened
+                    ? `${getLinkedInErrorMessage(oauthError)} تم نسخ النص وفتح LinkedIn للنشر اليدوي.`
+                    : `${getLinkedInErrorMessage(oauthError)} تم نسخ النص؛ افتح LinkedIn والصقه يدويًا.`,
+                    'error');
                 return;
             }
         }
