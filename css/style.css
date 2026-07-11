@@ -1417,6 +1417,57 @@ button, input, select, textarea {
     font-size: 1.35rem;
 }
 
+.app-guide-platforms-title {
+    margin-top: 1.35rem;
+}
+
+.app-guide-platform-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.app-guide-platform-grid article {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+}
+
+.app-guide-platform-grid h3 {
+    margin: 0.6rem 0 0.35rem;
+    font-size: 1rem;
+}
+
+.app-guide-platform-grid p {
+    margin: 0;
+    color: var(--muted-foreground);
+    line-height: 1.65;
+}
+
+.app-guide-platform-status {
+    display: inline-flex;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.app-guide-platform-status.is-ready {
+    background: hsl(160 70% 40% / 0.13);
+    color: hsl(160 70% 34%);
+}
+
+.app-guide-platform-status.is-limited {
+    background: hsl(35 85% 50% / 0.13);
+    color: hsl(35 85% 38%);
+}
+
+.app-guide-platform-status.is-soon {
+    background: hsl(188 85% 42% / 0.12);
+    color: var(--primary);
+}
+
 .app-guide-status-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1448,6 +1499,7 @@ button, input, select, textarea {
     }
 
     .app-guide-device-notes,
+    .app-guide-platform-grid,
     .app-guide-status-grid {
         grid-template-columns: 1fr;
     }

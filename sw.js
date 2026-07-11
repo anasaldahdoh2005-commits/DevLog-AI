@@ -1,4 +1,4 @@
-const CACHE_NAME = 'devlog-ai-v13';
+const CACHE_NAME = 'devlog-ai-v14';
 const APP_SHELL = [
   './',
   './index.html',
