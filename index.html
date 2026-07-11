@@ -70,6 +70,7 @@
     <main class="page" id="page-landing">
         <section class="hero">
             <div class="hero-content">
+                <span class="hero-beta-badge">نسخة تجريبية · Beta</span>
                 <h1 class="hero-title">وثّق إنجازاتك<br><span class="gradient-text">وانشرها باحترافية</span></h1>
                 <p class="hero-subtitle">تطبيق ذكي يساعد الجميع على توثيق إنجازاتهم اليومية وتحويلها إلى منشورات
                     LinkedIn احترافية باستخدام الذكاء الاصطناعي</p>
@@ -540,15 +541,76 @@
                     </form> <!-- 2026-07-01 -->
                 </div>
                 <div class="settings-card app-guide-card">
-                    <h2>طريقة استخدام التطبيق</h2>
+                    <div class="app-guide-heading">
+                        <div>
+                            <span class="app-guide-beta">نسخة تجريبية · Beta</span>
+                            <h2>دليل استخدام DevLog AI</h2>
+                        </div>
+                        <span class="app-guide-version">قيد التطوير والتحسين المستمر</span>
+                    </div>
+                    <p class="app-guide-intro">
+                        يساعدك DevLog AI على توثيق إنجازاتك وتحويلها إلى محتوى مهني قابل للمراجعة والمشاركة على LinkedIn.
+                        صُممت هذه النسخة لاختبار تجربة الاستخدام وجمع الملاحظات قبل إطلاق النسخة المستقرة.
+                    </p>
+
+                    <h3 class="app-guide-title">كيف يعمل التطبيق؟</h3>
                     <ol class="app-guide-steps">
-                        <li><strong>اكتب إنجازك:</strong> أضف ما أنجزته واختر أسلوب المنشور.</li>
-                        <li><strong>ولّد المنشور:</strong> راجع النص وعدّله ثم احفظه في السجل.</li>
-                        <li><strong>انشر مع المراجعة:</strong> من زر «نشر» اختر LinkedIn؛ سيفتح النص لتراجعه قبل الضغط على نشر.</li>
+                        <li><strong>توثيق الإنجاز:</strong> اكتب ما أنجزته، وأضف الصور المرتبطة به إن وجدت.</li>
+                        <li><strong>توليد المحتوى:</strong> اختر المنصة والأسلوب، ثم حوّل الإنجاز إلى منشور مهني باستخدام الذكاء الاصطناعي.</li>
+                        <li><strong>المراجعة والحفظ:</strong> راجع النص وعدّله قبل حفظه؛ يبقى الإنجاز محفوظًا في السجل للرجوع إليه لاحقًا.</li>
+                        <li><strong>المشاركة:</strong> من زر «نشر» اختر LinkedIn، ثم راجع المنشور داخل LinkedIn واضغط نشر بنفسك.</li>
                     </ol>
+
+                    <div class="app-guide-alert app-guide-alert-important">
+                        <h3>مهم: النشر على LinkedIn من الهواتف المحمولة</h3>
+                        <p>
+                            لا يتوفر حاليًا نشر تلقائي مباشر من الهاتف. بسبب قيود تطبيق LinkedIn ومتصفحات الهواتف،
+                            لا يمكن ضمان فتح محرر LinkedIn والنص معبأ تلقائيًا على جميع الأجهزة. يفتح DevLog AI قائمة
+                            المشاركة في الهاتف لتختار LinkedIn، وقد تحتاج في بعض الأجهزة إلى نسخ النص ولصقه يدويًا قبل النشر.
+                        </p>
+                    </div>
+
                     <div class="app-guide-device-notes">
-                        <p><strong>على اللابتوب:</strong> يفتح LinkedIn في نافذة جديدة والنص مجهز للنشر.</p>
-                        <p><strong>على الجوال:</strong> تظهر قائمة المشاركة؛ اختر LinkedIn. إذا لم ينتقل النص يمكنك نسخه من المنشور.</p>
+                        <article>
+                            <span class="app-guide-device-icon" aria-hidden="true">💻</span>
+                            <h3>على الكمبيوتر</h3>
+                            <p>يفتح LinkedIn في نافذة جديدة، ويظهر النص جاهزًا عندما يدعم LinkedIn تعبئته. راجع المحتوى ثم اضغط نشر.</p>
+                        </article>
+                        <article>
+                            <span class="app-guide-device-icon" aria-hidden="true">📱</span>
+                            <h3>على الهاتف</h3>
+                            <p>تظهر قائمة مشاركة النظام. اختر LinkedIn، وإن لم ينتقل النص تلقائيًا فانسخه من التطبيق والصقه داخل المنشور.</p>
+                        </article>
+                    </div>
+
+                    <div class="app-guide-alert app-guide-alert-images">
+                        <h3>حالة مشاركة الصور</h3>
+                        <p>
+                            رفع الصور وعرضها داخل الإنجاز والمعاينة يعمل في النسخة الحالية، لكن الصور لا تُرفق تلقائيًا
+                            مع منشور LinkedIn حتى الآن. هذه ميزة قيد التطوير مؤقتًا؛ أضف الصور يدويًا من جهازك بعد فتح
+                            محرر المنشور في LinkedIn.
+                        </p>
+                    </div>
+
+                    <div class="app-guide-status-grid">
+                        <div>
+                            <h3>متاح حاليًا</h3>
+                            <ul>
+                                <li>توثيق الإنجازات وحفظها.</li>
+                                <li>توليد منشورات عربية احترافية.</li>
+                                <li>تعديل النص وحفظ سجل المنشورات.</li>
+                                <li>مشاركة النص مع LinkedIn وX.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3>قيد التطوير</h3>
+                            <ul>
+                                <li>إرفاق الصور تلقائيًا عند النشر.</li>
+                                <li>تحسين تجربة LinkedIn على جميع الهواتف.</li>
+                                <li>توسيع خيارات المنصات والتحليلات.</li>
+                                <li>تحسينات الأداء والاستقرار قبل الإطلاق.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 <div class="settings-card">

@@ -327,6 +327,18 @@ button, input, select, textarea {
     align-items: center;
 }
 
+.hero-beta-badge {
+    display: inline-flex;
+    margin-bottom: 1rem;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid hsl(188 85% 42% / 0.4);
+    border-radius: 999px;
+    background: hsl(188 85% 42% / 0.1);
+    color: var(--primary);
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
 .hero-title {
     font-size: 3rem;
     font-weight: 700;
@@ -1298,13 +1310,82 @@ button, input, select, textarea {
     grid-column: 1 / -1;
 }
 
+.app-guide-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.app-guide-heading h2 {
+    margin: 0.55rem 0 0;
+}
+
+.app-guide-beta {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.28rem 0.65rem;
+    border: 1px solid hsl(188 85% 42% / 0.4);
+    border-radius: 999px;
+    background: hsl(188 85% 42% / 0.12);
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.app-guide-version {
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
+}
+
+.app-guide-intro {
+    margin: 0 0 1.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.95rem;
+    line-height: 1.8;
+}
+
+.app-guide-title {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+}
+
 .app-guide-steps {
     display: grid;
     gap: 0.75rem;
-    margin: 0 0 1rem;
+    margin: 0 0 1.25rem;
     padding-inline-start: 1.4rem;
     color: var(--foreground);
     line-height: 1.7;
+}
+
+.app-guide-alert {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: var(--radius);
+    line-height: 1.75;
+}
+
+.app-guide-alert h3 {
+    margin: 0 0 0.4rem;
+    font-size: 0.98rem;
+}
+
+.app-guide-alert p {
+    margin: 0;
+}
+
+.app-guide-alert-important {
+    border: 1px solid hsl(35 85% 50% / 0.45);
+    background: hsl(35 85% 50% / 0.1);
+    color: var(--foreground);
+}
+
+.app-guide-alert-images {
+    border: 1px solid hsl(188 85% 42% / 0.38);
+    background: hsl(188 85% 42% / 0.09);
+    color: var(--foreground);
 }
 
 .app-guide-device-notes {
@@ -1313,18 +1394,61 @@ button, input, select, textarea {
     gap: 0.75rem;
 }
 
-.app-guide-device-notes p {
+.app-guide-device-notes article {
     margin: 0;
-    padding: 0.85rem;
+    padding: 1rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--muted);
+}
+
+.app-guide-device-notes h3 {
+    margin: 0.35rem 0;
+    font-size: 0.98rem;
+}
+
+.app-guide-device-notes p {
+    margin: 0;
     color: var(--muted-foreground);
     line-height: 1.6;
 }
 
+.app-guide-device-icon {
+    font-size: 1.35rem;
+}
+
+.app-guide-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.app-guide-status-grid > div {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.app-guide-status-grid h3 {
+    margin: 0 0 0.55rem;
+    font-size: 0.98rem;
+}
+
+.app-guide-status-grid ul {
+    margin: 0;
+    padding-inline-start: 1.2rem;
+    color: var(--muted-foreground);
+    line-height: 1.75;
+}
+
 @media (max-width: 720px) {
-    .app-guide-device-notes {
+    .app-guide-heading {
+        flex-direction: column;
+    }
+
+    .app-guide-device-notes,
+    .app-guide-status-grid {
         grid-template-columns: 1fr;
     }
 }
