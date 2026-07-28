@@ -38,20 +38,13 @@ Deno.serve(async (req) => {
   let redirectAppUrl = fallbackAppUrl;
 
   try {
-    const error = requestUrl.searchParams.get("error");
-    if (error) {
-      return redirect(buildAppRedirect(fallbackAppUrl, {
-        linkedin: "error",
-        reason: error.slice(0, 80),
-      }));
-    }
-
+    const providerError = requestUrl.searchParams.get("error");
     const code = requestUrl.searchParams.get("code") || "";
     const state = requestUrl.searchParams.get("state") || "";
-    if (!code || !state) {
+    if (!state) {
       return redirect(buildAppRedirect(fallbackAppUrl, {
         linkedin: "error",
-        reason: "missing_oauth_params",
+        reason: providerError?.slice(0, 80) || "missing_oauth_params",
       }));
     }
 
@@ -61,14 +54,30 @@ Deno.serve(async (req) => {
     redirectAppUrl = appUrl;
 
     if (!stateRow || new Date(stateRow.expires_at).getTime() <= Date.now()) {
+      if (stateRow) await deleteOAuthState(stateHash);
       return redirect(buildAppRedirect(appUrl, {
         linkedin: "error",
         reason: "expired_state",
       }));
     }
 
-    assertLinkedInConfig();
     await deleteOAuthState(stateHash);
+
+    if (providerError) {
+      return redirect(buildAppRedirect(appUrl, {
+        linkedin: "error",
+        reason: providerError.slice(0, 80),
+      }));
+    }
+
+    if (!code) {
+      return redirect(buildAppRedirect(appUrl, {
+        linkedin: "error",
+        reason: "missing_oauth_params",
+      }));
+    }
+
+    assertLinkedInConfig();
 
     const token = await exchangeCodeForToken(code);
     if (!token.access_token) {

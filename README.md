@@ -32,7 +32,8 @@ DevLog AI is an Arabic-first progressive web application for documenting daily a
 - Six writing styles: professional, friendly, motivational, technical, short, and storytelling.
 - Server-enforced limit of three successful AI generations per user per UTC day.
 - Row Level Security policies that isolate each user's logs, profile, usage, and files.
-- Optional LinkedIn OAuth publishing integration.
+- Manual LinkedIn and X sharing from the reviewed post.
+- Optional server-side LinkedIn OAuth functions kept as an integration scaffold; the current UI does not enable direct publishing.
 - PWA installation, service worker caching, dark mode, and daily reminders.
 
 ## Application workflow
@@ -150,6 +151,10 @@ When documenting the connection code in screenshots, mask both the project URL a
 
 6. Open `http://localhost:3000/`.
 
+After pulling database or Edge Function changes, apply migrations before deploying
+the functions. The migration order matters because the AI refund RPC is restricted
+to the server role.
+
 ## Daily AI limit
 
 The `generate-post` Edge Function reserves a usage slot through the `claim_daily_ai_generation_v2` PostgreSQL function before calling Gemini. The function serializes concurrent claims per user, rejects the fourth successful generation with HTTP 429, and releases the reserved slot if the provider call fails. The daily window resets at 00:00 UTC.
@@ -189,7 +194,18 @@ The following checks cover the application's main functional and security paths:
 | Edit and delete | Saved achievements can be updated and removed. |
 | Logout and route protection | Logout ends the session and protected routes redirect to authentication. |
 
-The frontend JavaScript files and service worker pass `node --check`. The deployed application returns HTTP 200, redirects an unauthenticated dashboard request to the authentication page, and rejects invalid login credentials. End-to-end tests that create accounts, save data, call Gemini, and verify the fourth-request limit should be performed with dedicated test accounts before final submission.
+Run the repository checks locally with:
+
+```bash
+npm test
+```
+
+The check validates JavaScript syntax, duplicate HTML IDs, local asset references,
+the web manifest, the service-worker app shell, and the presence of a Content
+Security Policy. GitHub Actions runs the same check for pushes and pull requests.
+End-to-end tests that create accounts, save data, call Gemini, and verify the
+fourth-request limit should be performed with dedicated test accounts before final
+submission.
 
 ## Deployment
 

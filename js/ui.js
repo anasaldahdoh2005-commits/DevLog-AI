@@ -7,26 +7,23 @@ import {
     deleteLog,
     getStats,
     formatDate,
-    uploadLogImages,
     uploadUserAvatar,
     getCurrentSubscription, // 2026-07-01
     getUserProfile, // 2026-07-01
     saveUserProfile // 2026-07-01
 } from './db.js';
 import { generatePost, getStyleLabel, getPlatformLabel } from './ai.js';
-import { getLinkedInConnection, startLinkedInOAuth, publishLinkedInPost, disconnectLinkedIn } from './linkedin.js';
-import { navigate } from './router.js';
+import { getCurrentPage, navigate } from './router.js';
 
 let selectedStyle = 'Professional';
 let selectedPlatform = 'linkedin';
 let editingLogId = null;
-let currentGeneratedPost = '';
 let currentLogContent = '';
 let currentImageUrls = [];
 let currentImagePaths = [];
+let previewObjectUrls = [];
 let avatarPreviewUrl = '';
 let currentUserProfile = { full_name: '', username: '', avatar_path: '', avatar_url: '' }; // 2026-07-01
-let linkedinConnection = { connected: false, can_post: false, needs_reconnect: true };
 let profileRefreshPromise = null;
 
 const PLAN_STORAGE_KEY = 'devlog-selected-plan';
@@ -35,9 +32,13 @@ const PROFILE_CACHE_REFRESH_AGE = 10 * 60 * 1000;
 const PROFILE_CACHE_MAX_AGE = 6 * 24 * 60 * 60 * 1000;
 const DASHBOARD_CACHE_PREFIX = 'devlog-dashboard-cache:';
 const DASHBOARD_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
+const MAX_LOG_CONTENT_LENGTH = 1200;
+const MAX_LOG_IMAGE_COUNT = 8;
+const MAX_LOG_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_LOG_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const REMINDER_STORAGE_KEY = 'devlog-daily-reminder';
 const REMINDER_LAST_SHOWN_KEY = 'devlog-daily-reminder-last-shown';
-const DEFAULT_REMINDER_SETTINGS = { enabled: true, preset: '20:00', time: '20:00' };
+const DEFAULT_REMINDER_SETTINGS = { enabled: false, preset: '20:00', time: '20:00' };
 let reminderTimerId = null;
 let reminderWakeListenersReady = false;
 const PLANS = {
@@ -81,6 +82,16 @@ export function initUI() {
     });
 
     window.addEventListener('logschange', refreshCurrentPage);
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const previewModal = document.getElementById('preview-modal');
+        const logModal = document.getElementById('log-modal');
+        if (previewModal?.style.display !== 'none') {
+            closePreviewModal();
+        } else if (logModal?.style.display !== 'none') {
+            closeModal('log-modal');
+        }
+    });
 }
 
 // Toast notifications
@@ -138,7 +149,7 @@ function getProfileCacheKey() {
 
 function readCachedUserProfile() {
     try {
-        const cached = JSON.parse(localStorage.getItem(getProfileCacheKey()) || 'null');
+        const cached = JSON.parse(sessionStorage.getItem(getProfileCacheKey()) || 'null');
         if (!cached?.profile || Date.now() - Number(cached.cachedAt || 0) > PROFILE_CACHE_MAX_AGE) return null;
         return cached;
     } catch {
@@ -148,7 +159,7 @@ function readCachedUserProfile() {
 
 function cacheUserProfile(profile) {
     try {
-        localStorage.setItem(getProfileCacheKey(), JSON.stringify({ profile, cachedAt: Date.now() }));
+        sessionStorage.setItem(getProfileCacheKey(), JSON.stringify({ profile, cachedAt: Date.now() }));
     } catch {
         // The app still works when browser storage is unavailable.
     }
@@ -196,20 +207,50 @@ function renderSelectedImageNames() {
     if (!list) return;
 
     const files = getImageFiles();
-    list.innerHTML = files.length
-        ? files.map(file => `<span>${escapeHTML(file.name)}</span>`).join('')
-        : '<span>لم يتم اختيار صور بعد</span>';
+    const names = files.length ? files.map(file => file.name) : ['لم يتم اختيار صور بعد'];
+    list.replaceChildren(...names.map(name => {
+        const item = document.createElement('span');
+        item.textContent = name;
+        return item;
+    }));
 }
 
-async function syncSelectedImages() {
+function prepareSelectedImagePreviews() {
     const files = getImageFiles();
-    if (!files.length) {
-        return;
+    if (!files.length) return;
+
+    validateSelectedImageFiles(files);
+    revokePreviewObjectUrls();
+    previewObjectUrls = files.map(file => URL.createObjectURL(file));
+    currentImageUrls = [...previewObjectUrls];
+}
+
+function revokePreviewObjectUrls() {
+    previewObjectUrls.forEach(url => URL.revokeObjectURL(url));
+    previewObjectUrls = [];
+}
+
+function validateSelectedImageFiles(files) {
+    if (files.length > MAX_LOG_IMAGE_COUNT) {
+        throw new Error(`يمكنك إرفاق ${MAX_LOG_IMAGE_COUNT} صور كحد أقصى.`);
     }
 
-    const uploadedImages = await uploadLogImages(files);
-    currentImagePaths = uploadedImages.map(image => image.path);
-    currentImageUrls = uploadedImages.map(image => image.url);
+    files.forEach(file => {
+        if (!ALLOWED_LOG_IMAGE_TYPES.has(file.type)) {
+            throw new Error('صيغة الصورة غير مدعومة. استخدم JPG أو PNG أو WebP أو GIF.');
+        }
+        if (file.size > MAX_LOG_IMAGE_SIZE) {
+            throw new Error('حجم الصورة يجب ألا يتجاوز 5 ميجابايت.');
+        }
+    });
+}
+
+function getLogContentError(content) {
+    if (!content) return 'يرجى كتابة الإنجاز أولاً';
+    if (content.length > MAX_LOG_CONTENT_LENGTH) {
+        return `الإنجاز يجب ألا يتجاوز ${MAX_LOG_CONTENT_LENGTH} حرفًا`;
+    }
+    return '';
 }
 
 function showAuthRedirectNotice() {
@@ -572,7 +613,7 @@ function getDashboardCacheKey() {
 
 function readDashboardCache() {
     try {
-        const cached = JSON.parse(localStorage.getItem(getDashboardCacheKey()) || 'null');
+        const cached = JSON.parse(sessionStorage.getItem(getDashboardCacheKey()) || 'null');
         if (!cached || Date.now() - Number(cached.cachedAt || 0) > DASHBOARD_CACHE_MAX_AGE) return null;
         return cached;
     } catch {
@@ -582,9 +623,31 @@ function readDashboardCache() {
 
 function cacheDashboardData(stats, recentLogs) {
     try {
-        localStorage.setItem(getDashboardCacheKey(), JSON.stringify({ stats, recentLogs, cachedAt: Date.now() }));
+        sessionStorage.setItem(getDashboardCacheKey(), JSON.stringify({ stats, recentLogs, cachedAt: Date.now() }));
     } catch {
         // Ignore storage quota/privacy mode errors.
+    }
+}
+
+function clearCurrentUserSessionCaches() {
+    try {
+        sessionStorage.removeItem(getProfileCacheKey());
+        sessionStorage.removeItem(getDashboardCacheKey());
+    } catch {
+        // Sign-out must continue even when browser storage is unavailable.
+    }
+}
+
+function clearDevLogStorage(storage) {
+    try {
+        const keys = [];
+        for (let index = 0; index < storage.length; index += 1) {
+            const key = storage.key(index);
+            if (key?.startsWith('devlog-')) keys.push(key);
+        }
+        keys.forEach(key => storage.removeItem(key));
+    } catch {
+        // Ignore privacy mode/storage access errors.
     }
 }
 
@@ -655,8 +718,9 @@ function initLogModalUI() {
     const generateBtn = document.getElementById('generate-btn');
     generateBtn.addEventListener('click', async () => {
         const content = textarea.value.trim();
-        if (!content) {
-            showToast('يرجى كتابة الإنجاز أولاً', 'error');
+        const contentError = getLogContentError(content);
+        if (contentError) {
+            showToast(contentError, 'error');
             return;
         }
 
@@ -666,9 +730,8 @@ function initLogModalUI() {
 
         try {
             showLoading('جارٍ توليد المنشور بالذكاء الاصطناعي...');
-            await syncSelectedImages();
+            prepareSelectedImagePreviews();
             const post = await generatePost(content, selectedStyle, selectedPlatform); // 2026-07-02
-            currentGeneratedPost = post;
             currentLogContent = content;
             closeModal('log-modal');
             openPreviewModal(post);
@@ -682,18 +745,32 @@ function initLogModalUI() {
     });
 
     // Save only button
-    document.getElementById('save-log-btn').addEventListener('click', async () => {
+    const saveLogButton = document.getElementById('save-log-btn');
+    saveLogButton.addEventListener('click', async () => {
         const content = textarea.value.trim();
-        if (!content) {
-            showToast('يرجى كتابة الإنجاز أولاً', 'error');
+        const contentError = getLogContentError(content);
+        if (contentError) {
+            showToast(contentError, 'error');
             return;
         }
 
         try {
-            await syncSelectedImages();
+            validateSelectedImageFiles(getImageFiles());
+        } catch (error) {
+            showToast(error.message, 'error');
+            return;
+        }
+
+        if (saveLogButton.dataset.busy === 'true') return;
+        saveLogButton.dataset.busy = 'true';
+        saveLogButton.disabled = true;
+
+        try {
+            const imageFiles = getImageFiles();
             const logMetadata = {
                 platform: selectedPlatform,
-                image_paths: currentImagePaths
+                image_paths: currentImagePaths,
+                image_files: imageFiles
             };
 
             if (editingLogId) {
@@ -701,7 +778,9 @@ function initLogModalUI() {
                     content,
                     post_style: selectedStyle,
                     platform: selectedPlatform,
-                    image_urls: currentImagePaths
+                    ...(imageFiles.length
+                        ? { image_files: imageFiles }
+                        : { image_urls: currentImagePaths })
                 });
                 showToast('تم تحديث الإنجاز بنجاح!');
             } else {
@@ -709,12 +788,14 @@ function initLogModalUI() {
                 showToast('تم حفظ الإنجاز بنجاح!');
             }
 
-           await refreshCurrentPage();
+            await refreshCurrentPage();
             closeModal('log-modal');
-            closeModal('log-modal');
-            
+            revokePreviewObjectUrls();
         } catch (error) {
             showToast(error.message, 'error');
+        } finally {
+            saveLogButton.dataset.busy = 'false';
+            saveLogButton.disabled = false;
         }
     });
 
@@ -734,6 +815,8 @@ function openLogModal(log = null) {
     const title = document.getElementById('modal-title');
     const charCount = document.getElementById('char-count');
     const imageInput = document.getElementById('log-images');
+
+    revokePreviewObjectUrls();
 
     if (log) {
         editingLogId = log.id;
@@ -776,22 +859,12 @@ function openLogModal(log = null) {
 function initPreviewModalUI() {
     const modal = document.getElementById('preview-modal');
 
-    document.getElementById('close-preview-btn').addEventListener('click', () => closeModal('preview-modal'));
+    document.getElementById('close-preview-btn').addEventListener('click', closePreviewModal);
 
-    document.getElementById('copy-post-btn').addEventListener('click', () => {
+    document.getElementById('copy-post-btn').addEventListener('click', async () => {
         const content = document.getElementById('preview-content').textContent;
-        navigator.clipboard.writeText(content).then(() => {
-            showToast('تم نسخ المنشور!');
-        }).catch(() => {
-            // Fallback
-            const textarea = document.createElement('textarea');
-            textarea.value = content;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showToast('تم نسخ المنشور!');
-        });
+        const copied = await copyText(content);
+        showToast(copied ? 'تم نسخ المنشور!' : 'تعذر نسخ المنشور', copied ? 'success' : 'error');
     });
 
     const regenerateBtn = document.getElementById('regenerate-btn');
@@ -803,8 +876,7 @@ function initPreviewModalUI() {
         try {
             showLoading('جارٍ إعادة التوليد...');
             const post = await generatePost(currentLogContent, selectedStyle, selectedPlatform); // 2026-07-02
-            currentGeneratedPost = post;
-          document.getElementById('preview-content').textContent = post;
+            document.getElementById('preview-content').textContent = post;
             showToast('تم إعادة التوليد بنجاح!');
         } catch (error) {
             showToast(error.message, 'error');
@@ -815,20 +887,30 @@ function initPreviewModalUI() {
         }
     });
 
-    document.getElementById('save-post-btn').addEventListener('click', async () => {
+    const savePostButton = document.getElementById('save-post-btn');
+    savePostButton.addEventListener('click', async () => {
         const editedPost = document.getElementById('preview-content').textContent;
+        if (savePostButton.dataset.busy === 'true') return;
+        savePostButton.dataset.busy = 'true';
+        savePostButton.disabled = true;
+
         try {
+            const imageFiles = getImageFiles();
             if (editingLogId) {
                 await updateLog(editingLogId, {
+                    content: currentLogContent,
                     generated_post: editedPost,
                     post_style: selectedStyle,
                     platform: selectedPlatform,
-                    image_urls: currentImagePaths
+                    ...(imageFiles.length
+                        ? { image_files: imageFiles }
+                        : { image_urls: currentImagePaths })
                 });
             } else {
                 await createLog(currentLogContent, editedPost, selectedStyle, {
                     platform: selectedPlatform,
-                    image_paths: currentImagePaths
+                    image_paths: currentImagePaths,
+                    image_files: imageFiles
                 });
             }
             showToast('تم حفظ المنشور بنجاح!');
@@ -836,15 +918,17 @@ function initPreviewModalUI() {
             await refreshCurrentPage();
 
 
-            closeModal('preview-modal');
-            
+            closePreviewModal();
         } catch (error) {
             showToast(error.message, 'error');
+        } finally {
+            savePostButton.dataset.busy = 'false';
+            savePostButton.disabled = false;
         }
     });
 
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal('preview-modal');
+        if (e.target === modal) closePreviewModal();
     });
 }
 
@@ -861,9 +945,14 @@ function renderPreviewImages() {
     const container = document.getElementById('preview-images');
     if (!container) return;
 
-    container.innerHTML = currentImageUrls.length
-        ? currentImageUrls.map(url => `<img src="${escapeAttr(url)}" alt="صورة مرفقة مع الإنجاز" loading="lazy">`).join('')
-        : '';
+    const images = currentImageUrls.map(url => {
+        const image = document.createElement('img');
+        image.src = url;
+        image.alt = 'صورة مرفقة مع الإنجاز';
+        image.loading = 'lazy';
+        return image;
+    });
+    container.replaceChildren(...images);
 }
 
 // History UI
@@ -934,7 +1023,7 @@ function renderHistoryLogs(logs) {
 
 function createLogCardHTML(log, compact = false) {
     const date = formatDate(log.created_at);
-    const styleLabel = getStyleLabel(log.post_style);
+    const styleLabel = escapeHTML(getStyleLabel(log.post_style));
     const platformLabel = getPlatformLabel(log.platform || 'linkedin');
     const imageUrls = Array.isArray(log.image_urls) ? log.image_urls : [];
     const imagePaths = Array.isArray(log.image_paths) ? log.image_paths : imageUrls;
@@ -946,7 +1035,7 @@ function createLogCardHTML(log, compact = false) {
         : '';
 
     return `
-        <div class="log-card" data-id="${log.id}" data-content="${escapeAttr(log.content)}" data-style="${log.post_style}" data-platform="${log.platform || 'linkedin'}" data-images="${escapeAttr(JSON.stringify(imageUrls))}" data-image-paths="${escapeAttr(JSON.stringify(imagePaths))}" data-post="${escapeAttr(log.generated_post || '')}">
+        <div class="log-card" data-id="${escapeAttr(log.id)}" data-content="${escapeAttr(log.content)}" data-style="${escapeAttr(log.post_style)}" data-platform="${escapeAttr(log.platform || 'linkedin')}" data-images="${escapeAttr(JSON.stringify(imageUrls))}" data-image-paths="${escapeAttr(JSON.stringify(imagePaths))}" data-post="${escapeAttr(log.generated_post || '')}">
             <div class="log-card-header">
                 <span class="log-date">${date}</span>
                 <span class="log-style-badge">${platformLabel} · ${styleLabel}</span>
@@ -955,32 +1044,32 @@ function createLogCardHTML(log, compact = false) {
             ${imagePreview}
             ${compact ? '' : postPreview}
             <div class="log-actions">
-                ${log.generated_post ? `<button class="btn btn-ghost btn-sm copy-log-btn" data-post="${escapeAttr(log.generated_post)}">
+                ${log.generated_post ? `<button type="button" class="btn btn-ghost btn-sm copy-log-btn" data-post="${escapeAttr(log.generated_post)}">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     نسخ
                 </button>` : ''}
-                <button class="btn btn-ghost btn-sm edit-log-btn">
+                <button type="button" class="btn btn-ghost btn-sm edit-log-btn">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     تعديل
                 </button>
-                <button class="btn btn-ghost btn-sm btn-danger delete-log-btn">
+                <button type="button" class="btn btn-ghost btn-sm btn-danger delete-log-btn">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     حذف
                 </button>
 
-                <div class="publish-dropdown">
+                ${log.generated_post ? `<div class="publish-dropdown">
 
-    <button class="btn btn-ghost btn-sm publish-btn">
+    <button type="button" class="btn btn-ghost btn-sm publish-btn" aria-expanded="false">
         نشر ▼
     </button>
 
-    <div class="publish-menu">
+    <div class="publish-menu" role="menu">
 
-        <button class="publish-option share-linkedin">
+        <button type="button" class="publish-option share-linkedin" role="menuitem">
             LinkedIn
         </button>
 
-        <button class="publish-option share-x">
+        <button type="button" class="publish-option share-x" role="menuitem">
             🐦 X / Twitter
         </button>
 
@@ -990,7 +1079,7 @@ function createLogCardHTML(log, compact = false) {
 
     </div>
 
-</div>
+</div>` : ''}
             </div>
         </div>
     `;
@@ -999,13 +1088,10 @@ function createLogCardHTML(log, compact = false) {
 function attachLogCardEvents(container) {
     // Copy buttons
     container.querySelectorAll('.copy-log-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             const post = btn.dataset.post;
-            navigator.clipboard.writeText(post).then(() => {
-                showToast('تم نسخ المنشور!');
-            }).catch(() => {
-                showToast('تم نسخ المنشور!');
-            });
+            const copied = await copyText(post);
+            showToast(copied ? 'تم نسخ المنشور!' : 'تعذر نسخ المنشور', copied ? 'success' : 'error');
         });
     });
 
@@ -1034,7 +1120,7 @@ function attachLogCardEvents(container) {
             try {
                 await deleteLog(card.dataset.id);
                 showToast('تم حذف الإنجاز');
-                refreshCurrentPage();
+                await refreshCurrentPage();
             } catch (error) {
                 showToast(error.message, 'error');
             }
@@ -1121,6 +1207,7 @@ function renderUserProfileSettings() { // 2026-07-01
 function initSettingsUI() {
     initDailyReminderUI();
     document.getElementById('logout-btn').addEventListener('click', async () => {
+        clearCurrentUserSessionCaches();
         await signOut();
         showToast('تم تسجيل الخروج');
     });
@@ -1128,9 +1215,10 @@ function initSettingsUI() {
 
     document.getElementById('clear-data-btn').addEventListener('click', () => {
         if (!confirm('هل أنت متأكد من مسح جميع البيانات المحلية؟')) return;
-        localStorage.removeItem('devlog-logs');
+        clearDevLogStorage(localStorage);
+        clearDevLogStorage(sessionStorage);
         showToast('تم مسح البيانات المحلية');
-        refreshCurrentPage();
+        void refreshCurrentPage();
     });
 
     const passwordForm = document.getElementById('settings-password-form');
@@ -1199,107 +1287,6 @@ function initSettingsUI() {
     } // 2026-07-01
 }
 
-function initLinkedInSettingsUI() {
-    const connectBtn = document.getElementById('linkedin-connect-btn');
-    const disconnectBtn = document.getElementById('linkedin-disconnect-btn');
-    const openBtn = document.getElementById('linkedin-open-btn');
-
-    openBtn?.addEventListener('click', () => {
-        const opened = openPublishWindow(getPlatformPublishUrl('linkedin', ''));
-        showToast(opened
-            ? 'تم فتح LinkedIn. أنشئ منشورًا جديدًا والصق النص.'
-            : 'تعذر فتح LinkedIn. اسمح بالنوافذ المنبثقة ثم حاول مجددًا.',
-            opened ? 'success' : 'error');
-    });
-
-    connectBtn?.addEventListener('click', async () => {
-        if (!getCurrentUser()) {
-            showToast('سجل الدخول أولاً لربط LinkedIn', 'error');
-            navigate('/auth');
-            return;
-        }
-
-        try {
-            toggleBtnLoading(connectBtn, true);
-            const { authorization_url } = await startLinkedInOAuth();
-            window.location.href = authorization_url;
-        } catch (error) {
-            showToast(getLinkedInErrorMessage(error), 'error');
-        } finally {
-            toggleBtnLoading(connectBtn, false);
-        }
-    });
-
-    disconnectBtn?.addEventListener('click', async () => {
-        if (!confirm('هل تريد فصل ربط LinkedIn؟')) return;
-
-        try {
-            toggleBtnLoading(disconnectBtn, true);
-            linkedinConnection = await disconnectLinkedIn();
-            renderLinkedInConnectionStatus();
-            showToast('تم فصل LinkedIn');
-        } catch (error) {
-            showToast(getLinkedInErrorMessage(error), 'error');
-        } finally {
-            toggleBtnLoading(disconnectBtn, false);
-        }
-    });
-}
-
-async function refreshLinkedInConnectionStatus() {
-    if (!getCurrentUser()) {
-        linkedinConnection = { connected: false, can_post: false, needs_reconnect: true };
-        renderLinkedInConnectionStatus();
-        return;
-    }
-
-    try {
-        linkedinConnection = await getLinkedInConnection();
-    } catch (error) {
-        console.error('LinkedIn status error:', error);
-        linkedinConnection = { connected: false, can_post: false, needs_reconnect: true, error: true };
-    }
-
-    renderLinkedInConnectionStatus();
-}
-
-function renderLinkedInConnectionStatus() {
-    const status = document.getElementById('linkedin-connection-status');
-    const detail = document.getElementById('linkedin-connection-detail');
-    const connectBtn = document.getElementById('linkedin-connect-btn');
-    const disconnectBtn = document.getElementById('linkedin-disconnect-btn');
-    const avatar = document.getElementById('linkedin-account-avatar');
-    const connected = Boolean(linkedinConnection?.connected && linkedinConnection?.can_post);
-    const needsReconnect = Boolean(linkedinConnection?.connected && linkedinConnection?.needs_reconnect);
-
-    if (status) {
-        status.textContent = connected
-            ? 'مرتبط وجاهز للنشر'
-            : needsReconnect
-                ? 'يحتاج إعادة ربط'
-                : 'غير مرتبط';
-        status.dataset.state = connected ? 'connected' : needsReconnect ? 'warning' : 'idle';
-    }
-
-    if (detail) {
-        detail.textContent = connected
-            ? `${linkedinConnection.display_name || 'LinkedIn'} · النشر يتم عبر LinkedIn API`
-            : needsReconnect
-                ? 'انتهت الجلسة أو تنقص صلاحية w_member_social.'
-                : 'اربط حسابك حتى ينشر DevLog AI مباشرة بدون روابط مشاركة غير مضمونة.';
-    }
-
-    if (connectBtn) connectBtn.hidden = connected;
-    if (disconnectBtn) disconnectBtn.hidden = !linkedinConnection?.connected;
-
-    if (avatar) {
-        avatar.textContent = linkedinConnection?.display_name
-            ? linkedinConnection.display_name.trim().charAt(0).toUpperCase()
-            : 'in';
-    }
-}
-
-
 function initDailyReminderUI() {
     const toggle = document.getElementById('daily-reminder-toggle');
     const presetInputs = Array.from(document.querySelectorAll('input[name="reminder-time-preset"]'));
@@ -1316,7 +1303,16 @@ function initDailyReminderUI() {
         saveReminderSettings(settings);
         renderReminderSettings(settings);
 
-        if (enabled) await requestReminderPermission();
+        if (enabled) {
+            const hasPermission = await requestReminderPermission();
+            if (!hasPermission) {
+                const disabledSettings = { ...settings, enabled: false };
+                saveReminderSettings(disabledSettings);
+                renderReminderSettings(disabledSettings);
+                scheduleDailyReminder();
+                return;
+            }
+        }
         scheduleDailyReminder();
         showToast(enabled ? `تم ضبط التذكير اليومي على ${formatReminderTime(time)}` : 'تم إيقاف التذكير اليومي');
     };
@@ -1428,9 +1424,10 @@ function scheduleDailyReminder() {
     renderReminderSettings(settings);
 
     if (!settings.enabled) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
     const todayReminder = getTodayReminderDate(settings.time);
-    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayKey = getLocalDateKey();
     if (todayReminder.getTime() <= Date.now() && localStorage.getItem(REMINDER_LAST_SHOWN_KEY) !== todayKey) {
         reminderTimerId = setTimeout(async () => {
             await showDailyReminderNotification(settings.time);
@@ -1466,7 +1463,7 @@ function getNextReminderDate(time) {
 }
 
 async function showDailyReminderNotification(time) {
-    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayKey = getLocalDateKey();
     if (localStorage.getItem(REMINDER_LAST_SHOWN_KEY) === todayKey) return;
 
     const hasPermission = await requestReminderPermission();
@@ -1512,6 +1509,13 @@ function formatReminderTime(value = '20:00') {
     return date.toLocaleTimeString('ar-SA', { hour: 'numeric', minute: '2-digit' });
 }
 
+function getLocalDateKey(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 async function loadSettings() {
     const user = getCurrentUser();
     if (user) {
@@ -1548,28 +1552,22 @@ function closeModal(id) {
     document.getElementById(id).style.display = 'none';
 }
 
+function closePreviewModal() {
+    closeModal('preview-modal');
+    revokePreviewObjectUrls();
+}
+
 async function refreshCurrentPage() {
-
     try {
+        sessionStorage.removeItem(getDashboardCacheKey());
+        const currentPage = getCurrentPage();
 
-        // تحديث لوحة التحكم دائمًا
-        const dashboardContainer =
-            document.getElementById('recent-logs');
-
-        if (dashboardContainer) {
+        if (currentPage === 'dashboard') {
             await loadDashboard();
-        }
-
-        // تحديث السجل دائمًا
-        const historyContainer =
-            document.getElementById('history-logs');
-
-        if (historyContainer) {
+        } else if (currentPage === 'history') {
             await loadHistory();
         }
-
     } catch (error) {
-
         console.error('Refresh Error:', error);
     }
 }
@@ -1585,7 +1583,12 @@ function escapeHTML(str) {
 }
 
 function escapeAttr(str) {
-    return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 function safeJsonParse(value, fallback) {
@@ -1607,10 +1610,14 @@ async function copyText(text) {
         textarea.style.position = 'fixed';
         textarea.style.opacity = '0';
         document.body.appendChild(textarea);
-        textarea.select();
-        const copied = document.execCommand('copy');
-        document.body.removeChild(textarea);
-        return copied;
+        try {
+            textarea.select();
+            return document.execCommand('copy');
+        } catch {
+            return false;
+        } finally {
+            textarea.remove();
+        }
     }
 }
 
@@ -1688,73 +1695,6 @@ async function shareLinkedInManually(text) {
         'error');
 }
 
-async function publishPostToLinkedIn(text) {
-    try {
-        const status = await getLinkedInConnection();
-        linkedinConnection = status;
-
-        if (!status?.connected || status?.needs_reconnect || !status?.can_post) {
-            await copyText(text);
-            const { authorization_url } = await startLinkedInOAuth();
-            showToast('تم نسخ النص. اربط LinkedIn أولاً ثم أعد النشر الرسمي.');
-            window.location.href = authorization_url;
-            return;
-        }
-
-        const result = await publishLinkedInPost(text);
-        showToast(result?.id ? 'تم نشر المنشور على LinkedIn بنجاح' : 'تم إرسال المنشور إلى LinkedIn');
-        await refreshLinkedInConnectionStatus();
-    } catch (error) {
-        await copyText(text);
-
-        if (['linkedin_not_connected', 'linkedin_reconnect_required', 'linkedin_scope_missing'].includes(error?.code)) {
-            try {
-                const { authorization_url } = await startLinkedInOAuth();
-                showToast('تم نسخ النص. يحتاج LinkedIn إعادة ربط قبل النشر الرسمي.', 'error');
-                window.location.href = authorization_url;
-                return;
-            } catch (oauthError) {
-                await copyText(text);
-                const opened = openPublishWindow(getPlatformPublishUrl('linkedin', text));
-                showToast(opened
-                    ? `${getLinkedInErrorMessage(oauthError)} تم نسخ النص وفتح LinkedIn للنشر اليدوي.`
-                    : `${getLinkedInErrorMessage(oauthError)} تم نسخ النص؛ افتح LinkedIn والصقه يدويًا.`,
-                    'error');
-                return;
-            }
-        }
-
-        const opened = openPublishWindow(getPlatformPublishUrl('linkedin', text));
-        showToast(opened
-            ? `${getLinkedInErrorMessage(error)}. تم نسخ النص وفتح LinkedIn كخطة طوارئ.`
-            : `${getLinkedInErrorMessage(error)}. تم نسخ النص. افتح LinkedIn والصقه يدوياً.`,
-            'error');
-    }
-}
-
-function getLinkedInErrorMessage(error) {
-    const messages = {
-        auth_required: 'سجل الدخول أولاً.',
-        invalid_session: 'انتهت جلسة الدخول. سجل الخروج ثم ادخل مرة أخرى.',
-        invalid_user: 'تعذر التحقق من المستخدم. سجل الدخول مرة أخرى.',
-        missing_server_config: 'إعدادات LinkedIn على السيرفر غير مكتملة.',
-        supabase_service_failed: 'تعذر حفظ ربط LinkedIn على الخادم. حاول مرة أخرى.',
-        linkedin_not_connected: 'حساب LinkedIn غير مربوط.',
-        linkedin_reconnect_required: 'جلسة LinkedIn انتهت وتحتاج إعادة ربط.',
-        linkedin_scope_missing: 'صلاحية w_member_social غير مفعلة لتطبيق LinkedIn.',
-        linkedin_rate_limited: 'LinkedIn أوقف الطلب مؤقتاً بسبب كثرة المحاولات.',
-        post_text_too_long: 'نص LinkedIn أطول من الحد المسموح.',
-    };
-
-    return messages[error?.code] || error?.message || 'تعذر تنفيذ عملية LinkedIn';
-}
-
-
-
-
-
-
-
 document.addEventListener('click', async (e) => {
 
     // فتح وإغلاق قائمة النشر
@@ -1771,10 +1711,14 @@ document.addEventListener('click', async (e) => {
             .forEach(m => {
                 if (m !== menu) {
                     m.classList.remove('active');
+                    m.closest('.publish-dropdown')
+                        ?.querySelector('.publish-btn')
+                        ?.setAttribute('aria-expanded', 'false');
                 }
             });
 
-        menu.classList.toggle('active');
+        const isOpen = menu.classList.toggle('active');
+        dropdown.querySelector('.publish-btn')?.setAttribute('aria-expanded', String(isOpen));
         return;
     }
 
@@ -1800,6 +1744,9 @@ document.addEventListener('click', async (e) => {
         document.querySelectorAll('.publish-menu')
             .forEach(menu => {
                 menu.classList.remove('active');
+                menu.closest('.publish-dropdown')
+                    ?.querySelector('.publish-btn')
+                    ?.setAttribute('aria-expanded', 'false');
             });
     }
 

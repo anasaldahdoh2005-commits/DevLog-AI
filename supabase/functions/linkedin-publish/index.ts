@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const responseText = await response.text().catch(() => "");
-      console.log("LINKEDIN_PUBLISH_ERROR:", response.status, responseText);
+      console.log("LINKEDIN_PUBLISH_ERROR:", response.status, responseText.slice(0, 500));
       throw mapLinkedInPublishError(response.status);
     }
 

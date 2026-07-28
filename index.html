@@ -4,6 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="DevLog AI يساعدك على توثيق إنجازاتك اليومية وتحويلها إلى منشورات عربية جاهزة للمراجعة والنشر.">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://mgx-backend-cdn.metadl.com https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; manifest-src 'self'; worker-src 'self'; form-action 'self'; upgrade-insecure-requests">
     <meta name="theme-color" content="#1bb3bf">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,10 +18,8 @@
     <title>DevLog AI - وثّق إنجازاتك</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
-        rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Noto+Sans+Arabic:wght@400;500;600;700&amp;family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -39,7 +41,7 @@
                 <a href="#/settings" class="nav-link auth-only" data-page="settings">الإعدادات</a>
             </div>
             <div class="nav-actions">
-                <button class="btn btn-ghost theme-toggle" id="theme-toggle" aria-label="تبديل الثيم">
+                <button class="btn btn-ghost theme-toggle" id="theme-toggle" type="button" aria-label="تبديل الثيم">
                     <svg class="icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="5" />
                         <path
@@ -50,7 +52,7 @@
                     </svg>
                 </button>
                 <a href="#/auth" class="btn btn-primary no-auth-only" id="nav-login-btn">تسجيل الدخول</a>
-                <button class="btn btn-ghost auth-only" id="nav-user-btn">
+                <button class="btn btn-ghost auth-only" id="nav-user-btn" type="button" aria-label="فتح إعدادات الحساب">
                     <img id="nav-avatar-img" class="nav-avatar-img" alt="" hidden>
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -58,7 +60,8 @@
                     </svg>
                 </button>
             </div>
-            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="القائمة">
+            <button class="mobile-menu-btn" id="mobile-menu-btn" type="button" aria-label="القائمة"
+                aria-controls="nav-links" aria-expanded="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 12h18M3 6h18M3 18h18" />
                 </svg>
@@ -198,18 +201,21 @@
                     <p id="auth-subtitle">مرحباً بعودتك سجّل دخولك للمتابعة</p>
                 </div>
 
-                <div id="auth-error" class="alert alert-error" style="display:none;"></div>
-                <div id="auth-success" class="alert alert-success" style="display:none;"></div>
+                <div id="auth-error" class="alert alert-error" role="alert" aria-live="assertive"
+                    style="display:none;"></div>
+                <div id="auth-success" class="alert alert-success" role="status" aria-live="polite"
+                    style="display:none;"></div>
 
                 <!-- Login Form -->
                 <form id="login-form" class="auth-form">
                     <div class="form-group">
                         <label for="login-email">البريد الإلكتروني</label>
-                        <input type="email" id="login-email" placeholder="example@email.com" required>
+                        <input type="email" id="login-email" placeholder="example@email.com" autocomplete="email" required>
                     </div>
                     <div class="form-group">
                         <label for="login-password">كلمة المرور</label>
-                        <input type="password" id="login-password" placeholder="••••••••" required>
+                        <input type="password" id="login-password" placeholder="••••••••"
+                            autocomplete="current-password" required>
                     </div>
                     <button type="submit" class="btn btn-primary btn-full" id="login-btn">
                         <span class="btn-text">تسجيل الدخول</span>
@@ -225,15 +231,17 @@
                 <form id="signup-form" class="auth-form" style="display:none;">
                     <div class="form-group">
                         <label for="signup-email">البريد الإلكتروني</label>
-                        <input type="email" id="signup-email" placeholder="example@email.com" required>
+                        <input type="email" id="signup-email" placeholder="example@email.com" autocomplete="email" required>
                     </div>
                     <div class="form-group">
                         <label for="signup-password">كلمة المرور</label>
-                        <input type="password" id="signup-password" placeholder="••••••••" minlength="8" required>
+                        <input type="password" id="signup-password" placeholder="••••••••" minlength="8"
+                            autocomplete="new-password" required>
                     </div>
                     <div class="form-group">
                         <label for="signup-confirm">تأكيد كلمة المرور</label>
-                        <input type="password" id="signup-confirm" placeholder="••••••••" minlength="8" required>
+                        <input type="password" id="signup-confirm" placeholder="••••••••" minlength="8"
+                            autocomplete="new-password" required>
                     </div>
                     <button type="submit" class="btn btn-primary btn-full" id="signup-btn">
                         <span class="btn-text">إنشاء حساب</span>
@@ -248,7 +256,7 @@
                 <form id="reset-form" class="auth-form" style="display:none;">
                     <div class="form-group">
                         <label for="reset-email">البريد الإلكتروني</label>
-                        <input type="email" id="reset-email" placeholder="example@email.com" required>
+                        <input type="email" id="reset-email" placeholder="example@email.com" autocomplete="email" required>
                     </div>
                     <button type="submit" class="btn btn-primary btn-full" id="reset-btn">
                         <span class="btn-text">إرسال رابط الاستعادة</span>
@@ -276,11 +284,13 @@
                 <form id="update-password-form" class="auth-form">
                     <div class="form-group">
                         <label for="new-password">كلمة المرور الجديدة</label>
-                        <input type="password" id="new-password" placeholder="••••••••" minlength="8" required>
+                        <input type="password" id="new-password" placeholder="••••••••" minlength="8"
+                            autocomplete="new-password" required>
                     </div>
                     <div class="form-group">
                         <label for="new-password-confirm">تأكيد كلمة المرور</label>
-                        <input type="password" id="new-password-confirm" placeholder="••••••••" minlength="8" required>
+                        <input type="password" id="new-password-confirm" placeholder="••••••••" minlength="8"
+                            autocomplete="new-password" required>
                     </div>
                     <button type="submit" class="btn btn-primary btn-full" id="update-password-btn">
                         <span class="btn-text">تحديث كلمة المرور</span>
@@ -465,10 +475,11 @@
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
                         <input type="search" id="search-input" name="search-history-random"
-                            placeholder="بحث في الإنجازات..." autocomplete="new-password" autocorrect="off"
+                            placeholder="بحث في الإنجازات..." aria-label="البحث في الإنجازات"
+                            autocomplete="off" autocorrect="off"
                             autocapitalize="off" spellcheck="false" />
                     </div>
-                    <select id="filter-style" class="select-input">
+                    <select id="filter-style" class="select-input" aria-label="تصفية الإنجازات حسب النمط">
                         <option value="">كل الأنماط</option>
                         <option value="Professional">احترافي</option>
                         <option value="Friendly">ودّي</option>
@@ -477,7 +488,7 @@
                         <option value="Short">مختصر</option>
                         <option value="Storytelling">قصصي</option>
                     </select>
-                    <select id="sort-order" class="select-input">
+                    <select id="sort-order" class="select-input" aria-label="ترتيب الإنجازات">
                         <option value="newest">الأحدث أولاً</option>
                         <option value="oldest">الأقدم أولاً</option>
                     </select>
@@ -699,7 +710,7 @@
                     <h2>الإعدادات</h2>
                     <div class="setting-row">
                         <span>مسح البيانات المحلية</span>
-                        <button class="btn btn-outline btn-sm btn-danger" id="clear-data-btn">مسح</button>
+                        <button class="btn btn-outline btn-sm btn-danger" id="clear-data-btn" type="button">مسح</button>
                     </div>
                 </div>
                 <div class="settings-card">
@@ -707,12 +718,13 @@
                     <form id="settings-password-form" class="compact-form">
                         <div class="form-group">
                             <label for="settings-new-password">كلمة مرور جديدة</label>
-                            <input type="password" id="settings-new-password" placeholder="••••••••" minlength="8">
+                            <input type="password" id="settings-new-password" placeholder="••••••••" minlength="8"
+                                autocomplete="new-password" required>
                         </div>
                         <div class="form-group">
                             <label for="settings-new-password-confirm">تأكيد كلمة المرور</label>
                             <input type="password" id="settings-new-password-confirm" placeholder="••••••••"
-                                minlength="8">
+                                minlength="8" autocomplete="new-password" required>
                         </div>
                         <button type="submit" class="btn btn-outline btn-sm" id="settings-password-btn">
                             <span class="btn-text">تحديث كلمة المرور</span>
@@ -721,7 +733,7 @@
                     </form>
                 </div>
                 <div class="settings-card">
-                    <button class="btn btn-danger btn-full" id="logout-btn">
+                    <button class="btn btn-danger btn-full" id="logout-btn" type="button">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                             <polyline points="16 17 21 12 16 7" />
@@ -735,11 +747,13 @@
     </main>
 
     <!-- Add/Edit Log Modal -->
-    <div class="modal-overlay" id="log-modal" style="display:none;">
+    <div class="modal-overlay" id="log-modal" style="display:none;" role="dialog" aria-modal="true"
+        aria-labelledby="modal-title">
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modal-title">إنجاز جديد</h2>
-                <button class="btn btn-ghost btn-icon" id="close-modal-btn">
+                <button class="btn btn-ghost btn-icon" id="close-modal-btn" type="button"
+                    aria-label="إغلاق نافذة الإنجاز">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
                         <line x1="6" y1="6" x2="18" y2="18" />
@@ -751,14 +765,14 @@
                     <label for="log-content">ماذا أنجزت اليوم؟</label>
                     <textarea id="log-content"
                         placeholder="مثال: أكملت مشروع API باستخدام Node.js وربطته بقاعدة بيانات PostgreSQL..."
-                        rows="4"></textarea>
-                    <div class="char-counter"><span id="char-count">0</span> / 1000</div>
+                        rows="4" maxlength="1200"></textarea>
+                    <div class="char-counter"><span id="char-count">0</span> / 1200</div>
                 </div>
 
                 <div class="form-group">
                     <label for="log-images">صور الإنجاز</label>
                     <input type="file" id="log-images" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
-                    <div class="upload-hint">&#1610;&#1605;&#1603;&#1606;&#1603; &#1573;&#1585;&#1601;&#1575;&#1602; &#1589;&#1608;&#1585; &#1604;&#1604;&#1573;&#1606;&#1580;&#1575;&#1586;. &#1575;&#1604;&#1581;&#1583; &#1575;&#1604;&#1571;&#1602;&#1589;&#1609; 5 &#1605;&#1610;&#1580;&#1575;&#1576;&#1575;&#1610;&#1578; &#1604;&#1603;&#1604; &#1589;&#1608;&#1585;&#1577;.</div>
+                    <div class="upload-hint">يمكنك إرفاق حتى 8 صور للإنجاز، وبحد أقصى 5 ميجابايت لكل صورة.</div>
                     <div class="selected-images-list" id="selected-images-list">
                         <span>لم يتم اختيار صور بعد</span>
                     </div>
@@ -790,22 +804,22 @@
                 <div class="form-group">
                     <label>نمط المنشور</label>
                     <div class="style-options" id="style-options">
-                        <button class="style-btn active" data-style="Professional">احترافي</button>
-                        <button class="style-btn" data-style="Friendly">ودّي</button>
-                        <button class="style-btn" data-style="Motivational">تحفيزي</button>
-                        <button class="style-btn" data-style="Technical">تقني</button>
-                        <button class="style-btn" data-style="Short">مختصر</button>
-                        <button class="style-btn" data-style="Storytelling">قصصي</button>
+                        <button type="button" class="style-btn active" data-style="Professional">احترافي</button>
+                        <button type="button" class="style-btn" data-style="Friendly">ودّي</button>
+                        <button type="button" class="style-btn" data-style="Motivational">تحفيزي</button>
+                        <button type="button" class="style-btn" data-style="Technical">تقني</button>
+                        <button type="button" class="style-btn" data-style="Short">مختصر</button>
+                        <button type="button" class="style-btn" data-style="Storytelling">قصصي</button>
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button class="btn btn-primary" id="generate-btn">
+                    <button class="btn btn-primary" id="generate-btn" type="button">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                         </svg>
                         توليد منشور AI
                     </button>
-                    <button class="btn btn-outline" id="save-log-btn">
+                    <button class="btn btn-outline" id="save-log-btn" type="button">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                             <polyline points="17 21 17 13 7 13 7 21" />
@@ -813,18 +827,20 @@
                         </svg>
                         حفظ فقط
                     </button>
-                    <button class="btn btn-ghost" id="cancel-modal-btn">إلغاء</button>
+                    <button class="btn btn-ghost" id="cancel-modal-btn" type="button">إلغاء</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- AI Preview Modal -->
-    <div class="modal-overlay" id="preview-modal" style="display:none;">
+    <div class="modal-overlay" id="preview-modal" style="display:none;" role="dialog" aria-modal="true"
+        aria-labelledby="preview-modal-title">
         <div class="modal modal-lg">
             <div class="modal-header">
-                <h2>معاينة المنشور</h2>
-                <button class="btn btn-ghost btn-icon" id="close-preview-btn">
+                <h2 id="preview-modal-title">معاينة المنشور</h2>
+                <button class="btn btn-ghost btn-icon" id="close-preview-btn" type="button"
+                    aria-label="إغلاق معاينة المنشور">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
                         <line x1="6" y1="6" x2="18" y2="18" />
@@ -846,28 +862,29 @@
                             <span class="linkedin-time">الآن • 🌐</span>
                         </div>
                     </div>
-                    <div class="linkedin-body" id="preview-content" contenteditable="true"></div>
+                    <div class="linkedin-body" id="preview-content" contenteditable="true" role="textbox"
+                        aria-multiline="true" aria-label="نص المنشور القابل للتعديل"></div>
                     <div class="preview-images" id="preview-images"></div>
                     <div class="linkedin-reactions">
                         <!-- <span>👍 ❤️ 🎉</span> -->
                     </div>
                 </div>
                 <div class="preview-actions">
-                    <button class="btn btn-primary" id="copy-post-btn">
+                    <button class="btn btn-primary" id="copy-post-btn" type="button">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                         </svg>
                         نسخ المنشور
                     </button>
-                    <button class="btn btn-outline" id="regenerate-btn">
+                    <button class="btn btn-outline" id="regenerate-btn" type="button">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="23 4 23 10 17 10" />
                             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                         </svg>
                         إعادة التوليد
                     </button>
-                    <button class="btn btn-outline" id="save-post-btn">
+                    <button class="btn btn-outline" id="save-post-btn" type="button">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                             <polyline points="17 21 17 13 7 13 7 21" />
@@ -892,15 +909,15 @@
     </div>
 
     <!-- Toast -->
-    <div class="toast-container" id="toast-container"></div>
+    <div class="toast-container" id="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loading-overlay" style="display:none;">
+    <div class="loading-overlay" id="loading-overlay" style="display:none;" role="status" aria-live="polite"
+        aria-busy="true">
         <div class="spinner"></div>
         <p id="loading-text">جارٍ التحميل...</p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="js/script.js"></script>
 </body>
 

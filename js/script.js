@@ -1,8 +1,7 @@
-import { supabase } from "./supabase.js";
-import { initRouter, navigate } from './router.js';
-import { initAuth } from './auth.js';
+import { initRouter, navigate, refreshRoute } from './router.js';
+import { getCurrentUser, initAuth } from './auth.js';
 import { initUI } from './ui.js';
-import { initRealtime } from './store.js';
+import { syncLogsRealtime } from './store.js';
 
 let deferredInstallPrompt = null;
 const INSTALL_DISMISSED_KEY = 'devlog-install-dismissed-at';
@@ -101,6 +100,12 @@ async function initApp() {
     await initAuth();
     initUI();
     initRouter();
+    await syncRealtimeForCurrentUser();
+
+    window.addEventListener('authchange', () => {
+        void syncRealtimeForCurrentUser();
+        refreshRoute();
+    });
 
     // Mobile menu
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -108,12 +113,14 @@ async function initApp() {
 
     if (mobileMenuBtn && navLinks) {
         mobileMenuBtn.addEventListener('click', () => {
-            navLinks.classList.toggle('open');
+            const isOpen = navLinks.classList.toggle('open');
+            mobileMenuBtn.setAttribute('aria-expanded', String(isOpen));
         });
 
         navLinks.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', () => {
                 navLinks.classList.remove('open');
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
             });
         });
     }
@@ -154,6 +161,16 @@ async function initApp() {
                 localStorage.setItem('devlog-theme', 'light');
             }
         });
+    }
+}
+
+async function syncRealtimeForCurrentUser() {
+    try {
+        await syncLogsRealtime(getCurrentUser()?.id, () => {
+            window.dispatchEvent(new CustomEvent('logschange'));
+        });
+    } catch (error) {
+        console.warn('Realtime synchronization failed:', error);
     }
 }
 

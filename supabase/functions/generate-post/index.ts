@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json",
+    "Cache-Control": "no-store",
   };
 
   if (req.method === "OPTIONS") {
@@ -38,7 +39,10 @@ Deno.serve(async (req) => {
       return json({ error: "Authentication is required" }, 401, headers);
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return json({ error: "Invalid JSON body" }, 400, headers);
+    }
     const content = String(body?.content || "").trim();
     const postStyle = String(body?.post_style || "").trim();
     const platform = normalizePlatform(body?.platform);
@@ -107,7 +111,7 @@ Deno.serve(async (req) => {
     return json({ error: "Unexpected server error" }, 500, headers);
   } finally {
     if (claimId && !keepClaim && authorization) {
-      await releaseDailyAiGeneration(authorization, claimId).catch((error) => {
+      await releaseDailyAiGeneration(claimId).catch((error) => {
         console.log("DAILY_LIMIT_RELEASE_ERROR:", error instanceof Error ? error.message : "Unknown error");
       });
     }
@@ -148,18 +152,20 @@ async function claimDailyAiGeneration(authorization: string) {
   };
 }
 
-async function releaseDailyAiGeneration(authorization: string, claimId: string) {
+async function releaseDailyAiGeneration(claimId: string) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!supabaseUrl || !supabaseAnonKey) return;
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing server-only Supabase release credentials");
+  }
 
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/release_daily_ai_generation`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      apikey: supabaseAnonKey,
-      authorization,
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
     },
     body: JSON.stringify({ target_claim_id: claimId }),
   });
@@ -171,7 +177,6 @@ async function releaseDailyAiGeneration(authorization: string, claimId: string) 
 
 async function generateWithGemini(apiKey: string, prompt: string) {
   let lastStatus = 0;
-  let lastBody = "";
 
   for (const model of GEMINI_MODELS) {
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -179,10 +184,13 @@ async function generateWithGemini(apiKey: string, prompt: string) {
 
       try {
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+          `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey,
+            },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
             }),
@@ -193,14 +201,16 @@ async function generateWithGemini(apiKey: string, prompt: string) {
         if (response.ok) return await response.json();
 
         lastStatus = response.status;
-        lastBody = (await response.text().catch(() => "")).slice(0, 800);
-        console.log("GEMINI_API_ERROR:", model, response.status, lastBody);
+        console.log("GEMINI_API_ERROR:", model, response.status);
 
         if (!RETRYABLE_GEMINI_STATUSES.has(response.status)) break;
       } catch (error) {
         lastStatus = 503;
-        lastBody = error instanceof Error ? error.message : "Network error";
-        console.log("GEMINI_NETWORK_ERROR:", model, lastBody);
+        console.log(
+          "GEMINI_NETWORK_ERROR:",
+          model,
+          error instanceof Error ? error.message : "Network error",
+        );
       }
     }
   }

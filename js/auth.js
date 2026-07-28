@@ -49,6 +49,8 @@ export async function resetPassword(email) {
 export async function updatePassword(newPassword) {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
+    passwordRecoveryActive = false;
+    clearAuthCallbackParams();
 }
 
 export async function signOut() {
@@ -100,12 +102,20 @@ export async function initAuth() {
 // =====================
 
 function applySession(session) {
+    const previousUserId = currentUser?.id || null;
     currentUser = session?.user ?? null;
 
     if (currentUser) {
         document.body.classList.add('authenticated');
     } else {
         document.body.classList.remove('authenticated');
+    }
+
+    const currentUserId = currentUser?.id || null;
+    if (previousUserId !== currentUserId) {
+        window.dispatchEvent(new CustomEvent('authchange', {
+            detail: { user: currentUser }
+        }));
     }
 }
 
@@ -134,4 +144,15 @@ function getAuthRedirectUrl(authStatus) {
     url.search = '';
     url.searchParams.set('auth', authStatus);
     return url.toString();
+}
+
+function clearAuthCallbackParams() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('auth');
+    url.searchParams.delete('code');
+    window.history.replaceState(
+        {},
+        document.title,
+        `${url.pathname}${url.search}${window.location.hash}`
+    );
 }
