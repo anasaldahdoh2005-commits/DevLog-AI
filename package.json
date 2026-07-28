@@ -1,4 +1,10 @@
 {
+  "name": "devlog-ai",
+  "private": true,
+  "scripts": {
+    "check": "node scripts/check-project.mjs",
+    "test": "npm run check"
+  },
   "devDependencies": {
     "supabase": "^2.102.0"
   }

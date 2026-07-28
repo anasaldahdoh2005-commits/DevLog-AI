@@ -9,31 +9,49 @@ const LOG_IMAGE_BUCKET = 'log-images';
 const AVATAR_BUCKET = 'avatars';
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_LOG_IMAGE_COUNT = 8;
 
 export async function createLog(content, generatedPost, postStyle, metadata = {}) {
     const client = getSupabase();
     const user = getCurrentUser();
+    const imageFiles = Array.from(metadata.image_files || []).filter(Boolean);
+    let uploadedImages = [];
 
-    if (!client || !user) {
-        // Fallback to localStorage
-        return createLocalLog(content, generatedPost, postStyle, metadata);
+    if (imageFiles.length) {
+        uploadedImages = await uploadLogImages(imageFiles);
     }
 
-    const { data, error } = await client
-        .from(TABLE_NAME)
-        .insert({
-            user_id: user.id,
-            content,
-            generated_post: generatedPost || null,
-            post_style: postStyle,
-            platform: metadata.platform || 'linkedin',
-            image_urls: normalizeImagePaths(metadata.image_paths)
-        })
-        .select()
-        .single();
+    const imagePaths = uploadedImages.length
+        ? uploadedImages.map(image => image.path)
+        : normalizeImagePaths(metadata.image_paths);
 
-    if (error) throw error;
-    return data;
+    if (!client || !user) {
+        return createLocalLog(content, generatedPost, postStyle, {
+            ...metadata,
+            image_paths: imagePaths
+        });
+    }
+
+    try {
+        const { data, error } = await client
+            .from(TABLE_NAME)
+            .insert({
+                user_id: user.id,
+                content,
+                generated_post: generatedPost || null,
+                post_style: postStyle,
+                platform: metadata.platform || 'linkedin',
+                image_urls: imagePaths
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return resolveLogImages(data);
+    } catch (error) {
+        await removeStoredLogImages(uploadedImages.map(image => image.path));
+        throw error;
+    }
 }
 
 export async function getLogs(options = {}) {
@@ -77,22 +95,61 @@ export async function getLogs(options = {}) {
 export async function updateLog(id, updates) {
     const client = getSupabase();
     const user = getCurrentUser();
-    const safeUpdates = stripImageUpdates(updates); // 2/7/2026
+    const imageFiles = Array.from(updates.image_files || []).filter(Boolean);
+    const safeUpdates = stripImageUpdates(updates);
+    let uploadedImages = [];
 
     if (!client || !user) {
-        return updateLocalLog(id, safeUpdates); // 2/7/2026
+        if (imageFiles.length) {
+            uploadedImages = await uploadLogImages(imageFiles);
+            safeUpdates.image_urls = uploadedImages.map(image => image.path);
+            safeUpdates.image_paths = uploadedImages.map(image => image.path);
+        }
+        return updateLocalLog(id, safeUpdates);
     }
 
-    const { data, error } = await client
-        .from(TABLE_NAME)
-        .update(safeUpdates) // 2/7/2026
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+    const replacesImages = imageFiles.length > 0 || Array.isArray(updates.image_urls);
+    let previousImagePaths = [];
 
-    if (error) throw error;
-    return data;
+    if (replacesImages) {
+        const { data: existingLog, error: readError } = await client
+            .from(TABLE_NAME)
+            .select('image_urls')
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .single();
+
+        if (readError) throw readError;
+        previousImagePaths = normalizeImagePaths(existingLog?.image_urls);
+    }
+
+    try {
+        if (imageFiles.length) {
+            uploadedImages = await uploadLogImages(imageFiles);
+            safeUpdates.image_urls = uploadedImages.map(image => image.path);
+        }
+
+        const { data, error } = await client
+            .from(TABLE_NAME)
+            .update(safeUpdates)
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        if (replacesImages) {
+            const nextPaths = normalizeImagePaths(safeUpdates.image_urls);
+            const removedPaths = previousImagePaths.filter(path => !nextPaths.includes(path));
+            await removeStoredLogImages(removedPaths);
+        }
+
+        return resolveLogImages(data);
+    } catch (error) {
+        await removeStoredLogImages(uploadedImages.map(image => image.path));
+        throw error;
+    }
 }
 
 export async function deleteLog(id) {
@@ -103,6 +160,15 @@ export async function deleteLog(id) {
         return deleteLocalLog(id);
     }
 
+    const { data: existingLog, error: readError } = await client
+        .from(TABLE_NAME)
+        .select('image_urls')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+    if (readError) throw readError;
+
     const { error } = await client
         .from(TABLE_NAME)
         .delete()
@@ -110,11 +176,15 @@ export async function deleteLog(id) {
         .eq('user_id', user.id);
 
     if (error) throw error;
+    await removeStoredLogImages(existingLog?.image_urls);
 }
 
 export async function uploadLogImages(files = []) {
     const safeFiles = Array.from(files).filter(Boolean);
     if (!safeFiles.length) return [];
+    if (safeFiles.length > MAX_LOG_IMAGE_COUNT) {
+        throw new Error(`يمكنك إرفاق ${MAX_LOG_IMAGE_COUNT} صور كحد أقصى.`);
+    }
 
     safeFiles.forEach(validateImageFile);
 
@@ -128,7 +198,7 @@ export async function uploadLogImages(files = []) {
         }));
     }
 
-    return Promise.all(safeFiles.map(async (file) => {
+    const uploadResults = await Promise.allSettled(safeFiles.map(async (file) => {
         const imagePath = buildUserImagePath(user.id, file);
         const { error } = await client.storage.from(LOG_IMAGE_BUCKET).upload(imagePath, file, {
             cacheControl: '3600',
@@ -143,6 +213,18 @@ export async function uploadLogImages(files = []) {
             url: await getSignedStorageUrl(LOG_IMAGE_BUCKET, imagePath)
         };
     }));
+
+    const uploaded = uploadResults
+        .filter(result => result.status === 'fulfilled')
+        .map(result => result.value);
+    const failed = uploadResults.find(result => result.status === 'rejected');
+
+    if (failed) {
+        await removeStoredLogImages(uploaded.map(image => image.path));
+        throw failed.reason;
+    }
+
+    return uploaded;
 }
 
 export async function getSocialProfiles() {
@@ -308,20 +390,20 @@ export async function getStats() {
 // Local Storage Fallback
 function getLocalStorage() {
     const data = localStorage.getItem('devlog-logs');
-    return data ? JSON.parse(data) : [];
+    return safeJsonParse(data, []);
 }
 
 function saveLocalStorage(logs) {
     localStorage.setItem('devlog-logs', JSON.stringify(logs));
 }
 
-function stripImageUpdates(updates = {}) { // 2/7/2026
-    const { image_paths, ...safeUpdates } = updates; // 2/7/2026
+function stripImageUpdates(updates = {}) {
+    const { image_paths, image_files, ...safeUpdates } = updates;
     if (Array.isArray(updates.image_urls)) {
         safeUpdates.image_urls = normalizeImagePaths(updates.image_urls);
     }
-    return safeUpdates; // 2/7/2026
-} // 2/7/2026
+    return safeUpdates;
+}
 
 async function resolveLogImages(log) {
     const paths = Array.isArray(log.image_urls) ? log.image_urls : [];
@@ -430,12 +512,6 @@ function validateImageFile(file) {
     }
 }
 
-function getSafeExtension(file) {
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension)) return extension;
-    return file.type.split('/')[1] || 'jpg';
-}
-
 function fileToDataUrl(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -468,12 +544,12 @@ function normalizeImagePaths(paths = []) {
 
 function getLocalSocialProfiles() {
     const saved = localStorage.getItem('devlog-social-profiles');
-    return normalizeSocialProfiles(saved ? JSON.parse(saved) : {});
+    return normalizeSocialProfiles(safeJsonParse(saved, {}));
 }
 
 function getLocalUserProfile() { // 2026-07-01
     const saved = localStorage.getItem('devlog-user-profile'); // 2026-07-01
-    return resolveUserProfile(saved ? JSON.parse(saved) : {}); // 2026-07-07
+    return resolveUserProfile(safeJsonParse(saved, {})); // 2026-07-07
 } // 2026-07-01
  // 2026-07-01
 function normalizeUserProfile(profile = {}) { // 2026-07-01
@@ -504,6 +580,37 @@ async function getSignedStorageUrl(bucket, storagePath, expiresIn = 60 * 60) {
     const { data, error } = await client.storage.from(bucket).createSignedUrl(storagePath, expiresIn);
     if (error) return '';
     return data?.signedUrl || '';
+}
+
+async function removeStoredLogImages(paths = []) {
+    const storagePaths = normalizeImagePaths(paths).filter(path =>
+        !path.startsWith('data:')
+        && !path.startsWith('blob:')
+        && !/^https?:/i.test(path)
+    );
+
+    if (!storagePaths.length) return;
+
+    const client = getSupabase();
+    const user = getCurrentUser();
+    if (!client || !user) return;
+
+    const ownedPaths = storagePaths.filter(path => path.startsWith(`${user.id}/`));
+    if (!ownedPaths.length) return;
+
+    const { error } = await client.storage.from(LOG_IMAGE_BUCKET).remove(ownedPaths);
+    if (error) {
+        console.warn('Unable to remove stored log images:', error.message);
+    }
+}
+
+function safeJsonParse(value, fallback) {
+    if (!value) return fallback;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return fallback;
+    }
 }
  // 2026-07-01
 function sanitizeProfileName(value = '') { // 2026-07-01

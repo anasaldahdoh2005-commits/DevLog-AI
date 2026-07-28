@@ -247,6 +247,16 @@ button, input, select, textarea {
     box-shadow: none;
 }
 
+.btn:focus-visible,
+.mobile-menu-btn:focus-visible,
+.style-btn:focus-visible,
+.platform-btn:focus-visible,
+.publish-option:focus-visible,
+.install-prompt-close:focus-visible {
+    outline: 3px solid hsl(187 75% 42% / 0.28);
+    outline-offset: 2px;
+}
+
 .btn-ghost {
     background: transparent;
     color: var(--foreground);
@@ -662,7 +672,8 @@ button, input, select, textarea {
 .password-toggle:focus-visible {
     color: var(--foreground);
     background: var(--muted);
-    outline: none;
+    outline: 3px solid hsl(187 75% 42% / 0.28);
+    outline-offset: 2px;
 }
 
 .password-eye {
@@ -974,6 +985,11 @@ button, input, select, textarea {
     color: var(--foreground);
 }
 
+.search-box:focus-within {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px hsl(187 75% 42% / 0.12);
+}
+
 .select-input {
     padding: 0.5rem 1rem;
     border: 1.5px solid var(--input);
@@ -986,6 +1002,7 @@ button, input, select, textarea {
 
 .select-input:focus {
     border-color: var(--ring);
+    box-shadow: 0 0 0 3px hsl(187 75% 42% / 0.12);
 }
 
 .log-image-strip,
@@ -1754,6 +1771,7 @@ button, input, select, textarea {
 
 .linkedin-body:focus {
     border-color: var(--ring);
+    box-shadow: 0 0 0 3px hsl(187 75% 42% / 0.12);
 }
 
 .linkedin-reactions {
@@ -2289,5 +2307,16 @@ body.authenticated .no-auth-only {
 
     .custom-reminder-time {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }

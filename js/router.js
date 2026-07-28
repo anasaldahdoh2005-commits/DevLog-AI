@@ -1,3 +1,5 @@
+import { getCurrentUser } from './auth.js';
+
 // Hash-based SPA Router
 const routes = {
     '/': 'landing',
@@ -22,12 +24,16 @@ export function navigate(path) {
     window.location.hash = path;
 }
 
+export function refreshRoute() {
+    handleRoute();
+}
+
 function handleRoute() {
     const hash = window.location.hash.slice(1) || '/';
     const path = hash.split('?')[0];
     const pageName = routes[path] || 'landing';
 
-    const isAuthenticated = document.body.classList.contains('authenticated');
+    const isAuthenticated = Boolean(getCurrentUser());
 
     // ✅ التحقق من الصلاحية قبل إظهار أي صفحة
     if (protectedPages.includes(pageName) && !isAuthenticated) {

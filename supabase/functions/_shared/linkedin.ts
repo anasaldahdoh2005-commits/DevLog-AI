@@ -19,6 +19,7 @@ export function corsHeaders(methods = "GET, POST, DELETE, OPTIONS") {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Access-Control-Allow-Methods": methods,
     "Content-Type": "application/json",
+    "Cache-Control": "no-store",
   };
 }
 
@@ -127,7 +128,16 @@ function getNamedKey(environmentName: string) {
 }
 
 export async function insertOAuthState(row: Record<string, unknown>) {
-  const { error } = await getAdminClient().from("linkedin_oauth_states").insert(row);
+  const userId = String(row.user_id || "");
+  const { error: cleanupError } = await getAdminClient()
+    .from("linkedin_oauth_states")
+    .delete()
+    .lt("expires_at", new Date().toISOString());
+  assertAdminResult(cleanupError, "cleanup_oauth_states");
+
+  const { error } = await getAdminClient()
+    .from("linkedin_oauth_states")
+    .upsert({ ...row, user_id: userId }, { onConflict: "user_id" });
   assertAdminResult(error, "insert_oauth_state");
 }
 

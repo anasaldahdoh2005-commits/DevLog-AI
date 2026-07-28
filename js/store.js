@@ -1,24 +1,32 @@
 import { supabase } from './supabase.js';
 
-export let logsState = [];
 let logsChannel = null;
+let subscribedUserId = null;
 
-export function setLogs(logs) {
-    logsState = logs;
-}
+export async function syncLogsRealtime(userId, onLogsChange) {
+    const nextUserId = String(userId || '');
+    if (logsChannel && subscribedUserId === nextUserId) return logsChannel;
 
-export function getLogsState() {
-    return logsState;
-}
+    if (logsChannel) {
+        const staleChannel = logsChannel;
+        logsChannel = null;
+        subscribedUserId = null;
+        await supabase.removeChannel(staleChannel);
+    }
 
-export function initRealtime(onLogsChange) {
-    if (logsChannel) return logsChannel;
+    if (!nextUserId) return null;
 
+    subscribedUserId = nextUserId;
     logsChannel = supabase
-        .channel('logs-channel')
+        .channel(`logs:${nextUserId}`)
         .on(
             'postgres_changes',
-            { event: '*', schema: 'public', table: 'logs' },
+            {
+                event: '*',
+                schema: 'public',
+                table: 'logs',
+                filter: `user_id=eq.${nextUserId}`
+            },
             () => {
                 if (typeof onLogsChange === 'function') onLogsChange();
             }

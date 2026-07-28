@@ -1,4 +1,4 @@
-const CACHE_NAME = 'devlog-ai-v14';
+const CACHE_NAME = 'devlog-ai-v15';
 const APP_SHELL = [
   './',
   './index.html',
@@ -35,18 +35,6 @@ self.addEventListener('activate', (event) => {
 
         await Promise.all(oldAppCaches.map((key) => caches.delete(key)));
         await self.clients.claim();
-
-        // Reload existing installed/mobile clients once so an old ui.js cannot
-        // leave newly-rendered buttons without their click handlers.
-        if (oldAppCaches.length > 0) {
-          const windows = await self.clients.matchAll({
-            type: 'window',
-            includeUncontrolled: true
-          });
-          await Promise.all(windows.map((client) =>
-            client.navigate(client.url).catch(() => undefined)
-          ));
-        }
       })
   );
 });
@@ -59,13 +47,37 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (request.mode === 'navigate' || ['script', 'style'].includes(request.destination)) {
+  if (request.mode === 'navigate') {
+    event.respondWith(navigationNetworkFirst(request));
+    return;
+  }
+
+  if (['script', 'style'].includes(request.destination)) {
     event.respondWith(networkFirst(request));
     return;
   }
 
   event.respondWith(cacheFirst(request));
 });
+
+async function navigationNetworkFirst(request) {
+  try {
+    const response = await fetch(request);
+    const requestUrl = new URL(request.url);
+    if (
+      response
+      && response.status === 200
+      && response.type === 'basic'
+      && !requestUrl.search
+    ) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put('./index.html', response.clone());
+    }
+    return response;
+  } catch {
+    return (await caches.match('./index.html')) || Response.error();
+  }
+}
 
 async function networkFirst(request) {
   try {
@@ -78,7 +90,6 @@ async function networkFirst(request) {
   } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
-    if (request.mode === 'navigate') return caches.match('./index.html');
     return Response.error();
   }
 }
@@ -100,7 +111,7 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      const targetUrl = new URL('./#/dashboard', self.location.origin).href;
+      const targetUrl = new URL('./#/dashboard', self.registration.scope).href;
 
       for (const client of clientList) {
         if ('focus' in client) {
